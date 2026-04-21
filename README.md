@@ -13,6 +13,8 @@ Ein Tkinter-basiertes Lerntool für Namen, Tischgruppen und Nachbar:innen.
 
 ## Quick Start (60 Sekunden)
 
+Wichtig: Vor der ersten Nutzung immer zuerst die Abhaengigkeiten in der venv installieren.
+
 1. Öffne den Ordner `namenfit`.
 2. Doppelklick auf `start-namenfit.bat`.
 3. Falls es der erste Start ist: einmal im Ordner-Terminal ausführen:
