@@ -14,3 +14,5 @@ Regel:
 
 ### Changed
 - Governance erweitert: Feature-Arbeit wird als eigener Commit-Block gefuehrt, Push bleibt explizit manuell.
+- Repo-Path-Guardrail fuer absolute JSON-Strings entfernt; Namenfit verlaesst sich hier auf die bestehende relative Pfadserialisierung im App-State-Store.
+- Guardrails praezisiert: `CHANGELOG.md` wird nur bei nutzer- oder coentwicklerrelevanten Aenderungen erzwungen; Prozesswarnungen (Commit-/Push-Guidance) werden nur lokal ausgegeben.
