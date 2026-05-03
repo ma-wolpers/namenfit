@@ -1,4 +1,4 @@
-# Agent Guardrails (namenfit)
+﻿# Agent Guardrails (namenfit)
 
 Dieses Repository hat verbindliche Leitplanken fuer KI-Programmierer.
 
@@ -22,8 +22,8 @@ Verbindliche Regeln:
 - PRs verwenden die Checkliste in `.github/pull_request_template.md`.
 
 4. Zentrale UI-Steuerung
-- KeyBindings werden zentral in `app/ui/keybinding_registry.py` verwaltet.
-- Pop-up-Verhalten wird zentral in `app/ui/popup_policy.py` verwaltet.
+- KeyBindings werden zentral in `bw_libs/ui_contract/keybinding.py` verwaltet.
+- Pop-up-Verhalten wird zentral in `bw_libs/ui_contract/popup.py` verwaltet.
 - Neue Shortcuts und neue Pop-ups werden zuerst in den Zentralmodulen definiert.
 
 5. Feature-Commit und Push-Disziplin

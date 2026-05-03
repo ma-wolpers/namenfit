@@ -1,4 +1,4 @@
-from app.ui.keybinding_registry import (
+from bw_libs.ui_contract.keybinding import (
     UI_MODE_DIALOG,
     UI_MODE_EDITOR,
     UI_MODE_GLOBAL,

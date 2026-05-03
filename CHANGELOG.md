@@ -7,11 +7,12 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
-- Foundation for unified keyboard and popup governance: central modules `app/ui/keybinding_registry.py` and `app/ui/popup_policy.py` are now part of the app structure.
+- Foundation for unified keyboard and popup governance: central modules `bw_libs/ui_contract/keybinding.py` and `bw_libs/ui_contract/popup.py` are now part of the app structure.
 - New shortcut runtime debug popup in the Debug menu with compact active/disabled diagnostics and offline simulation (`Strg+Shift+D`, `Strg+Shift+O`).
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Central UI contracts for keybindings, popup policy, and HSM semantics now live in shared `bw_libs/ui_contract` modules to avoid duplicate maintenance.
 - Escape now follows centralized runtime behavior: active popups are closed first, then input focus is exited consistently.
 - Runtime shortcuts now validate intents against a central HSM contract before execution.
 - Shortcut intent semantics are now sourced from a central UI intent catalog.

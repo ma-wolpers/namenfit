@@ -18,6 +18,8 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- UI-Contracts fuer Keybindings, Popup-Lifecycle und HSM wurden auf das Shared-Paket `bw_libs/ui_contract/` umgestellt; GUI und Tests importieren die Vertraege jetzt zentral statt aus lokalen Duplikatmodulen.
+- Guardrails/Governance wurden auf `bw_libs/ui_contract`-Pfade umgestellt; `bw_libs/` wird bei Changelog-/Development-Log-Relevanz mitgeprueft.
 - Runtime-Shortcut-Registrierung validiert Intents jetzt gegen den zentralen HSM-Contract; unbekannte Intents werden frueh als Konfigurationsfehler geblockt.
 - Escape-Verhalten ist jetzt zentralisiert: Esc schliesst zunaechst aktive Popups und verlaesst danach Eingabefokus ohne Nebenpfade.
 - Runtime-Debug-Popup laeuft jetzt als nicht mode-blockierendes Parallel-Popup (`dialog.non_blocking`); der Resolver wertet nur noch mode-blockierende Popups als Dialogkontext.
