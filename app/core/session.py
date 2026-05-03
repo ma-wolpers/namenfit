@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import hashlib
 import os
 
-from ..config import AppPaths
+from ..config import discover_app_paths
 from .layout import SUPPORTED_IMAGE_EXTENSIONS, load_csv_layout, load_photo_folder, make_person_key
 from .models import MODE_COMBINED, MODE_PHOTO
 from ..storage.progress import ProgressStore, log_path_for_csv
@@ -199,12 +199,12 @@ def build_runtime_session(selection, selected_level, allow_intersection_on_misma
         progress_path = log_path_for_csv(csv_paths[0])
     elif len(photo_folders) == 1 and not csv_paths:
         session_id = _photo_session_id(photo_folders)
-        app_paths = AppPaths.discover()
+        app_paths = discover_app_paths()
         progress_path = str(app_paths.data_dir / f"photo_session_{session_id}.json")
     else:
         if photo_folders and not csv_paths:
             session_id = _photo_session_id(photo_folders)
-            app_paths = AppPaths.discover()
+            app_paths = discover_app_paths()
             progress_path = str(app_paths.data_dir / f"photo_session_multi_{session_id}.json")
         else:
             base_dir = os.path.dirname(csv_paths[0]) if csv_paths else photo_folders[0]

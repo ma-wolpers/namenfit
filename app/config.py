@@ -1,58 +1,37 @@
-"""Zentrale Konfiguration und robuste Pfadauflösung für den Namens-Trainer.
-
-Dieses Modul kapselt alle laufzeitabhängigen Pfade, sodass das Programm auf
-unterschiedlichen Rechnern stabil funktioniert (auch wenn der Projektordner
-verschoben wird).
-"""
+"""Zentrale Konfiguration und Datenquellenmodelle fuer den Namens-Trainer."""
 
 from dataclasses import dataclass
 from pathlib import Path
-import os
 
 from .app_info import APP_INFO
 from .core.models import MODE_COMBINED, MODE_CSV, MODE_PHOTO
+from bw_libs.app_paths import AppPaths
+
+def discover_app_paths(start_dir: Path | None = None) -> AppPaths:
+    """Return shared app paths for Namenfit using the central discovery logic."""
+
+    return AppPaths.discover(
+        app_name=APP_INFO.appdata_folder,
+        start_dir=start_dir or Path(__file__).resolve().parent,
+    )
 
 
-APP_DIR_NAME = APP_INFO.appdata_folder
+def app_state_file(paths: AppPaths) -> Path:
+    """Primary app-state store location."""
+
+    return paths.data_dir / "app_state.json"
 
 
-@dataclass(frozen=True)
-class AppPaths:
-    """Enthält relevante Dateipfade der Anwendung."""
+def legacy_app_state_file(paths: AppPaths) -> Path:
+    """Legacy app-state file in the data directory."""
 
-    data_dir: Path
-    app_state_file: Path
-    legacy_app_state_file: Path
-    legacy_local_app_state_file: Path
+    return paths.data_dir / "recent_sources.json"
 
-    @classmethod
-    def discover(cls):
-        """Ermittelt robust plattformabhängige Speicherorte.
 
-        Windows:
-            %APPDATA%/Namenfit
-        Sonst:
-            ~/.namenfit
-        """
+def legacy_local_app_state_file() -> Path:
+    """Legacy app-state file next to this module."""
 
-        if os.name == "nt":
-            appdata = os.environ.get("APPDATA")
-            if appdata:
-                data_dir = Path(appdata) / APP_DIR_NAME
-            else:
-                data_dir = Path.home() / f".{APP_DIR_NAME.lower()}"
-        else:
-            data_dir = Path.home() / f".{APP_DIR_NAME.lower()}"
-
-        data_dir.mkdir(parents=True, exist_ok=True)
-        return cls(
-            data_dir=data_dir,
-            app_state_file=data_dir / "app_state.json",
-            legacy_app_state_file=data_dir / "recent_sources.json",
-            legacy_local_app_state_file=Path(__file__).with_name(
-                ".recent_sources.json"
-            ),
-        )
+    return Path(__file__).with_name(".recent_sources.json")
 
 
 @dataclass(frozen=True)
