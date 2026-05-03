@@ -3,6 +3,9 @@
 import ctypes
 import json
 import os
+from pathlib import Path
+
+from bw_libs.app_paths import atomic_write_text
 
 from ..core.models import LEVEL_1
 from ..core.review_scheduler import (
@@ -543,21 +546,18 @@ class ProgressStore:
         Schreibt Fortschritt robust auf die Festplatte.
 
         Strategie:
-        1) In temporäre Datei schreiben
-        2) Per os.replace atomar austauschen
-        3) Hidden-Attribut setzen
+        1) Per zentralem Atomic-Writer in temporäre Datei schreiben und austauschen
+        2) Hidden-Attribut setzen
 
         Bei Permission-Problemen wird einmalig versucht, Read-only zu entfernen.
         Rückgabe: True bei Erfolg, sonst False.
         """
 
         payload = json.dumps(self.data, ensure_ascii=False, indent=2)
-        temp_path = f"{self.log_path}.tmp"
+        target_path = Path(self.log_path)
 
         def write_atomic():
-            with open(temp_path, "w", encoding="utf-8") as file_handle:
-                file_handle.write(payload)
-            os.replace(temp_path, self.log_path)
+            atomic_write_text(target_path, payload, encoding="utf-8")
 
         try:
             write_atomic()
@@ -566,7 +566,6 @@ class ProgressStore:
             return True
         except PermissionError:
             _clear_read_only(self.log_path)
-            _clear_read_only(temp_path)
             try:
                 write_atomic()
                 ensure_hidden(self.log_path)
@@ -578,12 +577,6 @@ class ProgressStore:
         except OSError as err:
             self.last_save_error = str(err)
             return False
-        finally:
-            if os.path.exists(temp_path):
-                try:
-                    os.remove(temp_path)
-                except OSError:
-                    pass
 
     def _level_key(self, level):
         return "level1" if level == LEVEL_1 else "level2"

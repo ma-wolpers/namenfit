@@ -18,6 +18,10 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- G2.2 erweitert: `app/storage/progress.py` nutzt jetzt zentrale Atomic-Text-Writes, und Legacy-Migrationen in `app/storage/app_state_store.py` schreiben atomisch ueber `bw_libs/app_paths.py`.
+- G2.1 gestartet: Shared-Modul `bw_libs/app_paths.py` eingefuehrt (AppPaths-Discovery sowie atomische JSON/Text-Write-Helfer).
+- Persistenz-Pilot: `app/storage/app_state_store.py` nutzt jetzt die zentrale `atomic_write_json`-API.
+- Guardrails beruecksichtigen `bw_libs/app_paths.py` als relevanten Shared-Pfad.
 - UI-Contracts fuer Keybindings, Popup-Lifecycle und HSM wurden auf das Shared-Paket `bw_libs/ui_contract/` umgestellt; GUI und Tests importieren die Vertraege jetzt zentral statt aus lokalen Duplikatmodulen.
 - Guardrails/Governance wurden auf `bw_libs/ui_contract`-Pfade umgestellt; `bw_libs/` wird bei Changelog-/Development-Log-Relevanz mitgeprueft.
 - Runtime-Shortcut-Registrierung validiert Intents jetzt gegen den zentralen HSM-Contract; unbekannte Intents werden frueh als Konfigurationsfehler geblockt.

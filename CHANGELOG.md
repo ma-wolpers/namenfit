@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Progress log persistence now uses the centralized atomic text writer, and legacy app-state migration writes atomically via `bw_libs/app_paths.py`.
+- Shared app path/atomic-write foundation introduced via `bw_libs/app_paths.py`; app-state persistence now uses the centralized atomic JSON writer.
 - Central UI contracts for keybindings, popup policy, and HSM semantics now live in shared `bw_libs/ui_contract` modules to avoid duplicate maintenance.
 - Escape now follows centralized runtime behavior: active popups are closed first, then input focus is exited consistently.
 - Runtime shortcuts now validate intents against a central HSM contract before execution.

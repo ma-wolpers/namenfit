@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import os
 
+from bw_libs.app_paths import atomic_write_json, atomic_write_text
 from ..core.learning_profiles import (
     DEFAULT_LEARNING_SETTINGS,
     normalize_learning_settings,
@@ -193,9 +194,10 @@ class AppStateStore:
             return
 
         try:
-            self.file_path.parent.mkdir(parents=True, exist_ok=True)
-            self.file_path.write_text(
-                legacy.read_text(encoding="utf-8"), encoding="utf-8"
+            atomic_write_text(
+                self.file_path,
+                legacy.read_text(encoding="utf-8"),
+                encoding="utf-8",
             )
         except Exception:
             return
@@ -433,11 +435,7 @@ class AppStateStore:
             "prompt_limit": _normalize_prompt_limit(last_session.get("prompt_limit")),
         }
         try:
-            self.file_path.parent.mkdir(parents=True, exist_ok=True)
-            self.file_path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            atomic_write_json(self.file_path, payload)
         except Exception:
             pass
 
