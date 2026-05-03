@@ -149,6 +149,36 @@ def _collect_process_guidance_warnings() -> list[str]:
     return warnings
 
 
+def _check_runtime_shortcut_integration(errors: list[str]) -> None:
+    """Require runtime shortcut and popup policy integration in the GUI."""
+
+    ui_module = _read("app/ui/ui.py")
+    _require_substring(
+        ui_module,
+        "self._runtime_shortcuts = KeybindingRegistry()",
+        "app/ui/ui.py",
+        errors,
+    )
+    _require_substring(
+        ui_module,
+        "self._popup_registry = PopupPolicyRegistry()",
+        "app/ui/ui.py",
+        errors,
+    )
+    _require_substring(
+        ui_module,
+        "self._runtime_shortcuts.evaluate_runtime(",
+        "app/ui/ui.py",
+        errors,
+    )
+    _require_substring(
+        ui_module,
+        "def _open_shortcut_runtime_debug_dialog(self):",
+        "app/ui/ui.py",
+        errors,
+    )
+
+
 def main() -> int:
     repo_root = _repo_root()
     staged = _staged_files(repo_root)
@@ -179,6 +209,7 @@ def main() -> int:
 
     _check_development_log_updated(staged, errors)
     _check_changelog_updated(staged, errors)
+    _check_runtime_shortcut_integration(errors)
     warnings = _collect_process_guidance_warnings()
 
     if errors:
