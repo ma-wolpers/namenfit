@@ -18,6 +18,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- G3/G4 gestartet: GUI-Startup nutzt jetzt ein explizites Composition-Root (`app/bootstrap/wiring.py` mit `build_gui_dependencies()`/`AppDependencies`), und `QuizApp` verwendet die Shared-Shell-Basis `bw_libs/app_shell.py`.
 - G2.2 erweitert: `app/storage/progress.py` nutzt jetzt zentrale Atomic-Text-Writes, und Legacy-Migrationen in `app/storage/app_state_store.py` schreiben atomisch ueber `bw_libs/app_paths.py`.
 - G2.1 gestartet: Shared-Modul `bw_libs/app_paths.py` eingefuehrt (AppPaths-Discovery sowie atomische JSON/Text-Write-Helfer).
 - Persistenz-Pilot: `app/storage/app_state_store.py` nutzt jetzt die zentrale `atomic_write_json`-API.

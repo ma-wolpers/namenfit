@@ -12,8 +12,7 @@ Fachlogik, Persistenz und UI-Teilbereiche liegen in eigenen Modulen.
 import tkinter as tk
 from tkinter import messagebox
 
-from .storage.app_state_store import AppStateStore
-from .config import AppPaths
+from .bootstrap.wiring import build_gui_dependencies
 from .core.models import LEVEL_1, LEVEL_2, MODE_COMBINED, MODE_CSV
 from .core.session import CombinedSourceMismatchError, build_runtime_session
 from .ui import ui
@@ -34,10 +33,8 @@ def main():
 
     configure_windows_process_identity()
 
-    paths = AppPaths.discover()
-    recent_store = AppStateStore(paths.app_state_file, max_entries=5)
-    recent_store.migrate_from_legacy(paths.legacy_app_state_file)
-    recent_store.migrate_from_legacy(paths.legacy_local_app_state_file)
+    dependencies = build_gui_dependencies()
+    recent_store = dependencies.recent_store
 
     while True:
         selection = ask_data_source_dialog(recent_store)
@@ -134,6 +131,7 @@ def main():
             recent_store.set_sound_options,
             level2_require_group_before_neighbors,
             recent_store.set_level2_require_group_before_neighbors,
+            shell_config=dependencies.shell_config,
         )
         root.mainloop()
         continue

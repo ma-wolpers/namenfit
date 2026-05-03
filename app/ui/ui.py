@@ -58,6 +58,7 @@ from bw_libs.ui_contract.hsm import (
 from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
 from .ui_intents import UiIntent
 from ..core.learning_profiles import CUSTOM_PROFILE
+from bw_libs.app_shell import AppShellConfig, TkinterAppShell
 from .ui_theme import (
     DEFAULT_THEME,
     THEMES,
@@ -110,8 +111,16 @@ class QuizApp:
         on_sound_options_changed=None,
         level2_require_group_before_neighbors=False,
         on_level2_setting_changed=None,
+        shell_config: AppShellConfig | None = None,
     ):
         self.root = root
+        resolved_shell_config = shell_config or AppShellConfig(
+            title="Namenfit",
+            geometry="980x860",
+            min_width=760,
+            min_height=620,
+        )
+        self.app_shell = TkinterAppShell(self.root, resolved_shell_config, on_close=self._on_shell_close)
         self.progress_store = progress_store
         self.on_theme_changed_callback = on_theme_changed
         self.on_learning_settings_changed_callback = on_learning_settings_changed
@@ -192,6 +201,16 @@ class QuizApp:
         self._bind_shortcuts()
         self._apply_level_widgets()
         self.next_person()
+
+    def _on_shell_close(self) -> bool:
+        """Close auxiliary windows before shutting down the root shell."""
+
+        try:
+            if hasattr(self, "_close_shortcut_runtime_debug_dialog"):
+                self._close_shortcut_runtime_debug_dialog()
+        except Exception:
+            pass
+        return True
 
     def _build_menu(self):
         """Erstellt die Menüleiste inkl. Theme-Auswahl."""
