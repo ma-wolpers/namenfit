@@ -6,6 +6,7 @@ import struct
 import tkinter as tk
 import wave
 from io import BytesIO
+from tkinter import ttk
 from time import perf_counter
 from PIL import Image, ImageTk
 
@@ -40,6 +41,22 @@ from ..core.stats_format import (
     stats_text_level2,
 )
 from .learning_menu import populate_learning_menu
+from bw_libs.ui_contract.keybinding import (
+    UI_MODE_DIALOG,
+    UI_MODE_EDITOR,
+    UI_MODE_GLOBAL,
+    UI_MODE_OFFLINE,
+    KeyBindingDefinition,
+    KeybindingRegistry,
+    KeybindingRuntimeContext,
+)
+from bw_libs.ui_contract.hsm import (
+    ESCAPE_CLOSE_POPUP,
+    ESCAPE_EXIT_INLINE_EDITOR,
+    build_ui_hsm_contract,
+)
+from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
+from .ui_intents import UiIntent
 from ..core.learning_profiles import CUSTOM_PROFILE
 from .ui_theme import (
     DEFAULT_THEME,
@@ -56,6 +73,18 @@ from .ui_theme import (
     style_primary_button,
     style_secondary_button,
 )
+
+
+def _known_ui_intents() -> tuple[str, ...]:
+    """Return all declared UiIntent string values."""
+
+    values = []
+    for key, value in UiIntent.__dict__.items():
+        if key.startswith("_"):
+            continue
+        if isinstance(value, str):
+            values.append(value)
+    return tuple(sorted(set(values)))
 
 
 class QuizApp:
@@ -128,6 +157,25 @@ class QuizApp:
         self.session_seen_names = set()
         self.session_prompt_results = {}
         self.session_confusions = {}
+        self._runtime_shortcuts = KeybindingRegistry()
+        self._hsm_contract = build_ui_hsm_contract(intents=_known_ui_intents())
+        self._popup_registry = PopupPolicyRegistry()
+        self._popup_registry.register_policy(PopupPolicy(policy_id="dialog.modal", kind=POPUP_KIND_MODAL))
+        self._popup_registry.register_policy(
+            PopupPolicy(
+                policy_id="dialog.non_blocking",
+                kind=POPUP_KIND_NON_MODAL,
+                trap_focus=False,
+                affects_mode=False,
+            )
+        )
+        self._tracked_popup_ids = set()
+        self._shortcut_debug_offline = False
+        self._shortcut_runtime_debug_window = None
+        self._shortcut_runtime_debug_table = None
+        self._shortcut_runtime_debug_context_var = None
+        self._shortcut_runtime_debug_summary_var = None
+        self._shortcut_runtime_debug_offline_var = None
 
         # Sequentielle Phasen-Logik
         self.current_phase = PHASE_GROUP
@@ -201,6 +249,17 @@ class QuizApp:
             label="Dateipfade im Debug-Panel",
             variable=self.debug_show_paths_var,
             command=self._on_debug_options_changed,
+        )
+        debug_menu.add_separator()
+        debug_menu.add_command(
+            label="Shortcut-Runtime-Debug anzeigen",
+            accelerator="Strg+Shift+D",
+            command=self._open_shortcut_runtime_debug_dialog,
+        )
+        debug_menu.add_command(
+            label="Offline simulieren umschalten",
+            accelerator="Strg+Shift+O",
+            command=self._toggle_shortcut_runtime_offline,
         )
 
         sound_menu.add_checkbutton(
@@ -466,12 +525,348 @@ class QuizApp:
     def _bind_shortcuts(self):
         """Bindet Enter/Leertaste an die jeweils passende Aktion."""
 
-        self.root.bind("<Return>", self._on_enter)
-        self.root.bind("<KP_Enter>", self._on_enter)
-        self.root.bind("<space>", self._on_space)
-        self.root.bind("<BackSpace>", self._on_backspace)
-        self.root.bind_all("<Alt-s>", self._on_alt_s)
-        self.root.bind_all("<Alt-S>", self._on_alt_s)
+        self._bind_runtime_shortcut(
+            "<Return>",
+            self._on_enter,
+            binding_id="global.enter",
+            intent=UiIntent.QUIZ_ENTER,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<KP_Enter>",
+            self._on_enter,
+            binding_id="global.enter.numpad",
+            intent=UiIntent.QUIZ_ENTER_NUMPAD,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<space>",
+            self._on_space,
+            binding_id="global.space",
+            intent=UiIntent.QUIZ_SPACE,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=False,
+        )
+        self._bind_runtime_shortcut(
+            "<BackSpace>",
+            self._on_backspace,
+            binding_id="global.backspace",
+            intent=UiIntent.QUIZ_TYPO,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Alt-s>",
+            self._on_alt_s,
+            binding_id="global.alt-s",
+            intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Alt-S>",
+            self._on_alt_s,
+            binding_id="global.alt-s.upper",
+            intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE_UPPER,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Control-Shift-d>",
+            lambda _event: self._open_shortcut_runtime_debug_dialog(),
+            binding_id="debug.runtime-overlay",
+            intent=UiIntent.DEBUG_RUNTIME_OVERLAY,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Control-Shift-o>",
+            lambda _event: self._toggle_shortcut_runtime_offline(),
+            binding_id="debug.runtime-offline",
+            intent=UiIntent.DEBUG_RUNTIME_OFFLINE,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Escape>",
+            self._on_escape_runtime,
+            binding_id="global.escape",
+            intent=UiIntent.GLOBAL_ESCAPE,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+
+    @staticmethod
+    def _is_editable_widget(widget):
+        if widget is None:
+            return False
+        return isinstance(widget, (tk.Entry, tk.Text, tk.Spinbox, ttk.Entry, ttk.Combobox))
+
+    def _track_popup_window(self, window, *, policy_id="dialog.modal"):
+        popup_id = str(window)
+        if popup_id in self._tracked_popup_ids:
+            return
+        self._popup_registry.open_popup(popup_id=popup_id, title=str(window.title() or ""), policy_id=policy_id)
+        self._tracked_popup_ids.add(popup_id)
+
+    def _sync_popup_sessions_from_windows(self):
+        visible_popup_ids = set()
+        for child in self.root.winfo_children():
+            if not isinstance(child, tk.Toplevel):
+                continue
+            try:
+                if not int(child.winfo_exists()):
+                    continue
+                if str(child.state()).lower() == "withdrawn":
+                    continue
+            except Exception:
+                continue
+
+            popup_id = str(child)
+            visible_popup_ids.add(popup_id)
+            if popup_id in self._tracked_popup_ids:
+                continue
+            self._popup_registry.open_popup(popup_id=popup_id, title=str(child.title() or ""), policy_id="dialog.modal")
+            self._tracked_popup_ids.add(popup_id)
+
+        stale_ids = self._tracked_popup_ids - visible_popup_ids
+        for popup_id in tuple(stale_ids):
+            self._popup_registry.close_popup(popup_id)
+            self._tracked_popup_ids.discard(popup_id)
+
+    def _build_runtime_context(self, event=None):
+        self._sync_popup_sessions_from_windows()
+        focused_widget = getattr(event, "widget", None) or self.root.focus_get()
+        text_input_focused = self._is_editable_widget(focused_widget)
+        dialog_open = self._popup_registry.has_mode_blocking_popup()
+        offline = bool(self._shortcut_debug_offline)
+
+        if offline:
+            active_mode = UI_MODE_OFFLINE
+        elif dialog_open:
+            active_mode = UI_MODE_DIALOG
+        elif text_input_focused:
+            active_mode = UI_MODE_EDITOR
+        else:
+            active_mode = UI_MODE_GLOBAL
+
+        return KeybindingRuntimeContext(
+            active_mode=active_mode,
+            offline=offline,
+            text_input_focused=text_input_focused,
+            dialog_open=dialog_open,
+        )
+
+    def _register_runtime_shortcut(
+        self,
+        *,
+        binding_id,
+        sequence,
+        intent,
+        modes,
+        allow_when_text_input,
+        allow_when_offline=True,
+    ):
+        intent_ok, _intent_reason = self._hsm_contract.validate_intent(intent)
+        if not intent_ok:
+            raise ValueError(f"Unknown runtime shortcut intent: {intent}")
+
+        definition = KeyBindingDefinition(
+            binding_id=binding_id,
+            sequence=sequence,
+            intent=intent,
+            modes=modes,
+            allow_when_text_input=allow_when_text_input,
+            allow_when_offline=allow_when_offline,
+        )
+        self._runtime_shortcuts.register(definition)
+        return definition
+
+    def _bind_runtime_shortcut(
+        self,
+        sequence,
+        handler,
+        *,
+        binding_id,
+        intent,
+        modes,
+        allow_when_text_input=False,
+        allow_when_offline=True,
+    ):
+        definition = self._register_runtime_shortcut(
+            binding_id=binding_id,
+            sequence=sequence,
+            intent=intent,
+            modes=modes,
+            allow_when_text_input=allow_when_text_input,
+            allow_when_offline=allow_when_offline,
+        )
+
+        def _wrapped(event):
+            context = self._build_runtime_context(event)
+            can_execute, _reason = self._runtime_shortcuts.evaluate_runtime(definition, context)
+            if not can_execute:
+                return None
+            return handler(event)
+
+        self.root.bind(sequence, _wrapped)
+
+    def _close_active_popup_on_escape(self):
+        self._sync_popup_sessions_from_windows()
+        active_popup = self._popup_registry.active_popup()
+        if active_popup is None:
+            return False
+        popup_id = active_popup.popup_id
+        for child in self.root.winfo_children():
+            if not isinstance(child, tk.Toplevel):
+                continue
+            if str(child) != popup_id:
+                continue
+            try:
+                child.destroy()
+            except Exception:
+                pass
+            break
+        self._popup_registry.close_popup(popup_id)
+        self._tracked_popup_ids.discard(popup_id)
+        return True
+
+    def _on_escape_runtime(self, _event=None):
+        focused = self.root.focus_get()
+        action = self._hsm_contract.resolve_escape_action(
+            has_popup=self._popup_registry.has_active_popup(),
+            has_inline_editor=self._is_editable_widget(focused),
+            has_parent_state=False,
+        )
+        if action == ESCAPE_CLOSE_POPUP and self._close_active_popup_on_escape():
+            return "break"
+        if action == ESCAPE_EXIT_INLINE_EDITOR:
+            self.root.focus_set()
+            return "break"
+        return "break"
+
+    def _toggle_shortcut_runtime_offline(self):
+        self._shortcut_debug_offline = not bool(self._shortcut_debug_offline)
+        if self._shortcut_runtime_debug_offline_var is not None:
+            self._shortcut_runtime_debug_offline_var.set(bool(self._shortcut_debug_offline))
+        self._refresh_shortcut_runtime_debug_dialog()
+
+    def _on_shortcut_runtime_offline_var_changed(self):
+        if self._shortcut_runtime_debug_offline_var is not None:
+            self._shortcut_debug_offline = bool(self._shortcut_runtime_debug_offline_var.get())
+        self._refresh_shortcut_runtime_debug_dialog()
+
+    def _open_shortcut_runtime_debug_dialog(self):
+        existing = self._shortcut_runtime_debug_window
+        if existing is not None and int(existing.winfo_exists()):
+            self._refresh_shortcut_runtime_debug_dialog()
+            existing.deiconify()
+            existing.lift()
+            existing.focus_force()
+            return
+
+        window = tk.Toplevel(self.root)
+        window.title("Shortcut Runtime Debug")
+        window.geometry("980x520")
+        window.minsize(820, 420)
+        self._track_popup_window(window, policy_id="dialog.non_blocking")
+
+        self._shortcut_runtime_debug_context_var = tk.StringVar(master=window, value="")
+        self._shortcut_runtime_debug_summary_var = tk.StringVar(master=window, value="")
+        self._shortcut_runtime_debug_offline_var = tk.BooleanVar(master=window, value=bool(self._shortcut_debug_offline))
+
+        toolbar = ttk.Frame(window, padding=(10, 8))
+        toolbar.pack(fill="x")
+        ttk.Label(toolbar, textvariable=self._shortcut_runtime_debug_context_var).pack(side="left", fill="x", expand=True)
+        ttk.Checkbutton(
+            toolbar,
+            text="Offline simulieren",
+            variable=self._shortcut_runtime_debug_offline_var,
+            command=self._on_shortcut_runtime_offline_var_changed,
+        ).pack(side="left", padx=(12, 0))
+        ttk.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog).pack(side="left", padx=(8, 0))
+
+        body = ttk.Frame(window, padding=(10, 0, 10, 8))
+        body.pack(fill="both", expand=True)
+        columns = ("mode", "key", "binding", "status", "reason")
+        table = ttk.Treeview(body, columns=columns, show="headings")
+        table.heading("mode", text="Mode")
+        table.heading("key", text="Key")
+        table.heading("binding", text="Binding")
+        table.heading("status", text="Status")
+        table.heading("reason", text="Reason")
+        table.column("mode", width=100, anchor="center", stretch=False)
+        table.column("key", width=130, anchor="center", stretch=False)
+        table.column("binding", width=300, anchor="w", stretch=True)
+        table.column("status", width=90, anchor="center", stretch=False)
+        table.column("reason", width=180, anchor="w", stretch=True)
+        table.pack(side="left", fill="both", expand=True)
+        y_scroll = ttk.Scrollbar(body, orient="vertical", command=table.yview)
+        y_scroll.pack(side="right", fill="y")
+        table.configure(yscrollcommand=y_scroll.set)
+
+        ttk.Label(window, textvariable=self._shortcut_runtime_debug_summary_var).pack(fill="x", padx=10, pady=(0, 8))
+
+        self._shortcut_runtime_debug_window = window
+        self._shortcut_runtime_debug_table = table
+        window.protocol("WM_DELETE_WINDOW", self._close_shortcut_runtime_debug_dialog)
+        self._refresh_shortcut_runtime_debug_dialog()
+
+    def _close_shortcut_runtime_debug_dialog(self):
+        if self._shortcut_runtime_debug_window is not None and int(self._shortcut_runtime_debug_window.winfo_exists()):
+            popup_id = str(self._shortcut_runtime_debug_window)
+            self._popup_registry.close_popup(popup_id)
+            self._tracked_popup_ids.discard(popup_id)
+            self._shortcut_runtime_debug_window.destroy()
+        self._shortcut_runtime_debug_window = None
+        self._shortcut_runtime_debug_table = None
+        self._shortcut_runtime_debug_context_var = None
+        self._shortcut_runtime_debug_summary_var = None
+        self._shortcut_runtime_debug_offline_var = None
+
+    def _refresh_shortcut_runtime_debug_dialog(self):
+        table = self._shortcut_runtime_debug_table
+        if table is None:
+            return
+
+        context = self._build_runtime_context()
+        if self._shortcut_runtime_debug_context_var is not None:
+            self._shortcut_runtime_debug_context_var.set(
+                f"mode={context.active_mode} | offline={context.offline} | dialog={context.dialog_open} | text-focus={context.text_input_focused}"
+            )
+
+        for item_id in table.get_children(""):
+            table.delete(item_id)
+
+        active_count = 0
+        disabled_count = 0
+        for mode in (UI_MODE_GLOBAL, UI_MODE_EDITOR, UI_MODE_DIALOG, UI_MODE_OFFLINE):
+            for definition in self._runtime_shortcuts.all():
+                if mode not in definition.modes and UI_MODE_GLOBAL not in definition.modes:
+                    continue
+                can_execute, reason = self._runtime_shortcuts.evaluate_runtime(
+                    definition,
+                    context,
+                    active_mode_override=mode,
+                )
+                status = "active" if can_execute else "disabled"
+                if can_execute:
+                    active_count += 1
+                else:
+                    disabled_count += 1
+                table.insert(
+                    "",
+                    "end",
+                    values=(mode, definition.sequence, definition.binding_id, status, "" if can_execute else reason),
+                )
+
+        total = active_count + disabled_count
+        if self._shortcut_runtime_debug_summary_var is not None:
+            self._shortcut_runtime_debug_summary_var.set(
+                f"Bindings: {total} total | {active_count} active | {disabled_count} disabled"
+            )
 
     def _on_alt_s(self, _event):
         self.level2_group_gate_var.set(not self.level2_group_gate_var.get())
