@@ -14,6 +14,8 @@ app/
 │  ├─ phase_ui.py
 │  ├─ level_dialog.py
 │  ├─ learning_menu.py
+│  ├─ keybinding_registry.py
+│  ├─ popup_policy.py
 │  └─ ui_theme.py
 ├─ core/
 │  ├─ session.py
@@ -43,6 +45,8 @@ app/
   - Tkinter-Interaktion, Dialoge, Layout-Zustände und Theming.
   - `ui.py` orchestriert den Quizablauf.
   - `startup_dialog.py` kapselt Quellenauswahl und Start-Defaults.
+  - `keybinding_registry.py` ist die zentrale Registry fuer modebasierte Tastatursteuerung.
+  - `popup_policy.py` ist die zentrale Policy fuer Popup-Lifecycle, Fokus und Escape-Verhalten.
 
 - `core/*`
   - Domänenlogik ohne direkte Tkinter-Abhängigkeit.
