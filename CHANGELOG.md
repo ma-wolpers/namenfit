@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- The shortcut runtime debug popup now opens as a non-blocking parallel popup and no longer pushes shortcut resolution into dialog mode.
 - Global quiz shortcuts are now routed through a centralized runtime keybinding resolver with mode/offline/text-focus/dialog evaluation.
 - Keybinding registry now exposes a shared runtime context and evaluate API for consistent activation reasons.
 - Guardrail checks now verify runtime integration in the UI layer (not only module existence).

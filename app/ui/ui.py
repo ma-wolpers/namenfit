@@ -50,7 +50,7 @@ from .keybinding_registry import (
     KeybindingRegistry,
     KeybindingRuntimeContext,
 )
-from .popup_policy import POPUP_KIND_MODAL, PopupPolicy, PopupPolicyRegistry
+from .popup_policy import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
 from ..core.learning_profiles import CUSTOM_PROFILE
 from .ui_theme import (
     DEFAULT_THEME,
@@ -142,6 +142,14 @@ class QuizApp:
         self._runtime_shortcuts = KeybindingRegistry()
         self._popup_registry = PopupPolicyRegistry()
         self._popup_registry.register_policy(PopupPolicy(policy_id="dialog.modal", kind=POPUP_KIND_MODAL))
+        self._popup_registry.register_policy(
+            PopupPolicy(
+                policy_id="dialog.non_blocking",
+                kind=POPUP_KIND_NON_MODAL,
+                trap_focus=False,
+                affects_mode=False,
+            )
+        )
         self._tracked_popup_ids = set()
         self._shortcut_debug_offline = False
         self._shortcut_runtime_debug_window = None
@@ -569,11 +577,11 @@ class QuizApp:
             return False
         return isinstance(widget, (tk.Entry, tk.Text, tk.Spinbox, ttk.Entry, ttk.Combobox))
 
-    def _track_popup_window(self, window):
+    def _track_popup_window(self, window, *, policy_id="dialog.modal"):
         popup_id = str(window)
         if popup_id in self._tracked_popup_ids:
             return
-        self._popup_registry.open_popup(popup_id=popup_id, title=str(window.title() or ""), policy_id="dialog.modal")
+        self._popup_registry.open_popup(popup_id=popup_id, title=str(window.title() or ""), policy_id=policy_id)
         self._tracked_popup_ids.add(popup_id)
 
     def _sync_popup_sessions_from_windows(self):
@@ -605,7 +613,7 @@ class QuizApp:
         self._sync_popup_sessions_from_windows()
         focused_widget = getattr(event, "widget", None) or self.root.focus_get()
         text_input_focused = self._is_editable_widget(focused_widget)
-        dialog_open = self._popup_registry.has_active_popup()
+        dialog_open = self._popup_registry.has_mode_blocking_popup()
         offline = bool(self._shortcut_debug_offline)
 
         if offline:
@@ -698,7 +706,7 @@ class QuizApp:
         window.title("Shortcut Runtime Debug")
         window.geometry("980x520")
         window.minsize(820, 420)
-        self._track_popup_window(window)
+        self._track_popup_window(window, policy_id="dialog.non_blocking")
 
         self._shortcut_runtime_debug_context_var = tk.StringVar(master=window, value="")
         self._shortcut_runtime_debug_summary_var = tk.StringVar(master=window, value="")

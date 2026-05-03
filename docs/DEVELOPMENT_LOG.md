@@ -15,6 +15,7 @@ Regel:
 - Tests fuer zentrale Runtime-Module ergaenzt: `tests/test_keybinding_registry_runtime.py` und `tests/test_popup_policy_registry.py`.
 
 ### Changed
+- Runtime-Debug-Popup laeuft jetzt als nicht mode-blockierendes Parallel-Popup (`dialog.non_blocking`); der Resolver wertet nur noch mode-blockierende Popups als Dialogkontext.
 - Wave-B-Integration gestartet: `app/ui/ui.py` nutzt jetzt zentrale Runtime-Shortcut-Registrierung mit `evaluate_runtime` und PopupPolicy-basiertem Dialogkontext.
 - `app/ui/keybinding_registry.py` um `KeybindingRuntimeContext` und `evaluate_runtime` erweitert (mode-/offline-/textfokus-/dialogbasierte Aktivierungspruefung).
 - Guardrails erweitert: `tools/ci/check_ai_guardrails.py` validiert die tatsaechliche Runtime-Integration in `app/ui/ui.py`.
