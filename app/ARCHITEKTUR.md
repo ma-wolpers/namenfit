@@ -47,6 +47,7 @@ app/
   - `startup_dialog.py` kapselt Quellenauswahl und Start-Defaults.
   - `keybinding_registry.py` ist die zentrale Registry fuer modebasierte Tastatursteuerung.
   - `popup_policy.py` ist die zentrale Policy fuer Popup-Lifecycle, Fokus und Escape-Verhalten.
+  - `hsm_contract.py` und `ui_intents.py` bilden den zentralen HSM-Vertrag fuer Intent-Semantik, Escape-Prioritaet und Transition-Regeln.
 
 - `core/*`
   - Domänenlogik ohne direkte Tkinter-Abhängigkeit.

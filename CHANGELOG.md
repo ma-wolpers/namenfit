@@ -12,6 +12,9 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Escape now follows centralized runtime behavior: active popups are closed first, then input focus is exited consistently.
+- Runtime shortcuts now validate intents against a central HSM contract before execution.
+- Shortcut intent semantics are now sourced from a central UI intent catalog.
 - The shortcut runtime debug popup now opens as a non-blocking parallel popup and no longer pushes shortcut resolution into dialog mode.
 - Global quiz shortcuts are now routed through a centralized runtime keybinding resolver with mode/offline/text-focus/dialog evaluation.
 - Keybinding registry now exposes a shared runtime context and evaluate API for consistent activation reasons.

@@ -50,7 +50,13 @@ from .keybinding_registry import (
     KeybindingRegistry,
     KeybindingRuntimeContext,
 )
+from .hsm_contract import (
+    ESCAPE_CLOSE_POPUP,
+    ESCAPE_EXIT_INLINE_EDITOR,
+    build_ui_hsm_contract,
+)
 from .popup_policy import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
+from .ui_intents import UiIntent
 from ..core.learning_profiles import CUSTOM_PROFILE
 from .ui_theme import (
     DEFAULT_THEME,
@@ -67,6 +73,18 @@ from .ui_theme import (
     style_primary_button,
     style_secondary_button,
 )
+
+
+def _known_ui_intents() -> tuple[str, ...]:
+    """Return all declared UiIntent string values."""
+
+    values = []
+    for key, value in UiIntent.__dict__.items():
+        if key.startswith("_"):
+            continue
+        if isinstance(value, str):
+            values.append(value)
+    return tuple(sorted(set(values)))
 
 
 class QuizApp:
@@ -140,6 +158,7 @@ class QuizApp:
         self.session_prompt_results = {}
         self.session_confusions = {}
         self._runtime_shortcuts = KeybindingRegistry()
+        self._hsm_contract = build_ui_hsm_contract(intents=_known_ui_intents())
         self._popup_registry = PopupPolicyRegistry()
         self._popup_registry.register_policy(PopupPolicy(policy_id="dialog.modal", kind=POPUP_KIND_MODAL))
         self._popup_registry.register_policy(
@@ -510,7 +529,7 @@ class QuizApp:
             "<Return>",
             self._on_enter,
             binding_id="global.enter",
-            intent="quiz.enter",
+            intent=UiIntent.QUIZ_ENTER,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -518,7 +537,7 @@ class QuizApp:
             "<KP_Enter>",
             self._on_enter,
             binding_id="global.enter.numpad",
-            intent="quiz.enter.numpad",
+            intent=UiIntent.QUIZ_ENTER_NUMPAD,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -526,7 +545,7 @@ class QuizApp:
             "<space>",
             self._on_space,
             binding_id="global.space",
-            intent="quiz.space",
+            intent=UiIntent.QUIZ_SPACE,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=False,
         )
@@ -534,7 +553,7 @@ class QuizApp:
             "<BackSpace>",
             self._on_backspace,
             binding_id="global.backspace",
-            intent="quiz.typo",
+            intent=UiIntent.QUIZ_TYPO,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -542,7 +561,7 @@ class QuizApp:
             "<Alt-s>",
             self._on_alt_s,
             binding_id="global.alt-s",
-            intent="settings.toggle_group_gate",
+            intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -550,7 +569,7 @@ class QuizApp:
             "<Alt-S>",
             self._on_alt_s,
             binding_id="global.alt-s.upper",
-            intent="settings.toggle_group_gate.upper",
+            intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE_UPPER,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -558,7 +577,7 @@ class QuizApp:
             "<Control-Shift-d>",
             lambda _event: self._open_shortcut_runtime_debug_dialog(),
             binding_id="debug.runtime-overlay",
-            intent="debug.runtime.overlay",
+            intent=UiIntent.DEBUG_RUNTIME_OVERLAY,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -566,7 +585,15 @@ class QuizApp:
             "<Control-Shift-o>",
             lambda _event: self._toggle_shortcut_runtime_offline(),
             binding_id="debug.runtime-offline",
-            intent="debug.runtime.offline",
+            intent=UiIntent.DEBUG_RUNTIME_OFFLINE,
+            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
+            allow_when_text_input=True,
+        )
+        self._bind_runtime_shortcut(
+            "<Escape>",
+            self._on_escape_runtime,
+            binding_id="global.escape",
+            intent=UiIntent.GLOBAL_ESCAPE,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
@@ -642,6 +669,10 @@ class QuizApp:
         allow_when_text_input,
         allow_when_offline=True,
     ):
+        intent_ok, _intent_reason = self._hsm_contract.validate_intent(intent)
+        if not intent_ok:
+            raise ValueError(f"Unknown runtime shortcut intent: {intent}")
+
         definition = KeyBindingDefinition(
             binding_id=binding_id,
             sequence=sequence,
@@ -681,6 +712,40 @@ class QuizApp:
             return handler(event)
 
         self.root.bind(sequence, _wrapped)
+
+    def _close_active_popup_on_escape(self):
+        self._sync_popup_sessions_from_windows()
+        active_popup = self._popup_registry.active_popup()
+        if active_popup is None:
+            return False
+        popup_id = active_popup.popup_id
+        for child in self.root.winfo_children():
+            if not isinstance(child, tk.Toplevel):
+                continue
+            if str(child) != popup_id:
+                continue
+            try:
+                child.destroy()
+            except Exception:
+                pass
+            break
+        self._popup_registry.close_popup(popup_id)
+        self._tracked_popup_ids.discard(popup_id)
+        return True
+
+    def _on_escape_runtime(self, _event=None):
+        focused = self.root.focus_get()
+        action = self._hsm_contract.resolve_escape_action(
+            has_popup=self._popup_registry.has_active_popup(),
+            has_inline_editor=self._is_editable_widget(focused),
+            has_parent_state=False,
+        )
+        if action == ESCAPE_CLOSE_POPUP and self._close_active_popup_on_escape():
+            return "break"
+        if action == ESCAPE_EXIT_INLINE_EDITOR:
+            self.root.focus_set()
+            return "break"
+        return "break"
 
     def _toggle_shortcut_runtime_offline(self):
         self._shortcut_debug_offline = not bool(self._shortcut_debug_offline)
