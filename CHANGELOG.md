@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- App identity metadata is now centralized in `app/app_info.py` and used as the source for startup shell identity and app-data folder naming.
 - Startup wiring now goes through a centralized GUI dependency builder and applies a shared Tk shell lifecycle configuration (`bw_libs/app_shell.py`).
 - Progress log persistence now uses the centralized atomic text writer, and legacy app-state migration writes atomically via `bw_libs/app_paths.py`.
 - Shared app path/atomic-write foundation introduced via `bw_libs/app_paths.py`; app-state persistence now uses the centralized atomic JSON writer.

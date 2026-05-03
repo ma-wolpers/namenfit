@@ -58,6 +58,7 @@ from bw_libs.ui_contract.hsm import (
 from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
 from .ui_intents import UiIntent
 from ..core.learning_profiles import CUSTOM_PROFILE
+from ..app_info import APP_INFO
 from bw_libs.app_shell import AppShellConfig, TkinterAppShell
 from .ui_theme import (
     DEFAULT_THEME,
@@ -115,7 +116,7 @@ class QuizApp:
     ):
         self.root = root
         resolved_shell_config = shell_config or AppShellConfig(
-            title="Namenfit",
+            title=APP_INFO.window_title,
             geometry="980x860",
             min_width=760,
             min_height=620,

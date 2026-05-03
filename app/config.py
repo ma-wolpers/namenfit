@@ -9,10 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 import os
 
+from .app_info import APP_INFO
 from .core.models import MODE_COMBINED, MODE_CSV, MODE_PHOTO
 
 
-APP_DIR_NAME = "Namenfit"
+APP_DIR_NAME = APP_INFO.appdata_folder
 
 
 @dataclass(frozen=True)
