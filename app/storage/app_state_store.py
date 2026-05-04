@@ -10,7 +10,7 @@ from pathlib import Path
 import json
 import os
 
-from bw_libs.app_paths import atomic_write_json, atomic_write_text
+from bw_libs.app_paths import atomic_write_json
 from ..core.learning_profiles import (
     DEFAULT_LEARNING_SETTINGS,
     normalize_learning_settings,
@@ -30,8 +30,6 @@ DEFAULT_SOUND_OPTIONS = {
 }
 DEFAULT_LEVEL2_REQUIRE_GROUP_BEFORE_NEIGHBORS = False
 
-LEGACY_RELATIVE_PREFIX = "7THCLOUD_REL::"
-
 
 def _norm(path):
     return os.path.normcase(os.path.abspath(path))
@@ -39,26 +37,6 @@ def _norm(path):
 
 def _normalize_level2_group_gate(value):
     return bool(value)
-
-
-def _resolve_legacy_workspace_root():
-    for probe in (os.getcwd(), __file__):
-        current = os.path.abspath(probe)
-        if not os.path.isdir(current):
-            current = os.path.dirname(current)
-        if not current:
-            continue
-
-        while True:
-            if os.path.isdir(os.path.join(current, "7thVault")):
-                return current
-
-            parent = os.path.dirname(current)
-            if parent == current:
-                break
-            current = parent
-
-    return None
 
 
 def _serialize_source_path(path):
@@ -72,14 +50,6 @@ def _deserialize_source_path(value):
     if not isinstance(value, str) or not value.strip():
         return None
 
-    if value.startswith(LEGACY_RELATIVE_PREFIX):
-        relative = value[len(LEGACY_RELATIVE_PREFIX) :].replace("/", os.sep)
-        root = _resolve_legacy_workspace_root()
-        if not root:
-            return None
-        return os.path.abspath(os.path.join(root, relative))
-
-    # Altbestand: absolute Pfade bleiben lesbar.
     return os.path.abspath(value)
 
 
@@ -153,25 +123,6 @@ class AppStateStore:
 
     file_path: Path
     max_entries: int = 5
-
-    def migrate_from_legacy(self, legacy_path):
-        """Übernimmt alte Recent-Datei am bisherigen Speicherort (best effort)."""
-
-        if self.file_path.exists() or not legacy_path:
-            return
-
-        legacy = Path(legacy_path)
-        if not legacy.exists():
-            return
-
-        try:
-            atomic_write_text(
-                self.file_path,
-                legacy.read_text(encoding="utf-8"),
-                encoding="utf-8",
-            )
-        except Exception:
-            return
 
     def load(self):
         default = {

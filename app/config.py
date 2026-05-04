@@ -22,18 +22,6 @@ def app_state_file(paths: AppPaths) -> Path:
     return paths.data_dir / "app_state.json"
 
 
-def legacy_app_state_file(paths: AppPaths) -> Path:
-    """Legacy app-state file in the data directory."""
-
-    return paths.data_dir / "recent_sources.json"
-
-
-def legacy_local_app_state_file() -> Path:
-    """Legacy app-state file next to this module."""
-
-    return Path(__file__).with_name(".recent_sources.json")
-
-
 @dataclass(frozen=True)
 class DataSourceSelection:
     """Auswahl aus dem Startdialog."""

@@ -18,11 +18,11 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
-- Quellenpersistenz entkoppelt: `app/storage/app_state_store.py` speichert Quellenpfade jetzt ohne `7thCloud`-Ordnerkopplung, Startup-Hinweise zu "ausserhalb von 7thCloud" wurden entfernt; Legacy-Prefix-Werte bleiben lesbar.
-- Optional G2.3.3 abgeschlossen: app-spezifische Pfadauflosung in `app/config.py` auf zentrales `bw_libs.app_paths.AppPaths` harmonisiert; Bootstrap/Session nutzen jetzt die Shared-Discovery inkl. unveraenderter Legacy-Migrationspfade.
+- Legacy-Modus abgeschlossen und deprecated: `app/storage/app_state_store.py` verarbeitet nur noch das Zukunftsformat (absolute Quellenpfade); 7thCloud-Relative-Prefix-Parsing und alte Recent-File-Migrationspfade wurden entfernt.
+- Optional G2.3.3 abgeschlossen: app-spezifische Pfadauflosung in `app/config.py` auf zentrales `bw_libs.app_paths.AppPaths` harmonisiert; Bootstrap/Session nutzen jetzt die Shared-Discovery ohne Legacy-Migrationszweige.
 - G5 abgeschlossen: AppIdentity-Manifest `app/app_info.py` eingefuehrt und fuer Startup-Metadaten (Window-Titel/AppData-Folder) als Single-Source in Bootstrap/Config verdrahtet.
 - G3/G4 gestartet: GUI-Startup nutzt jetzt ein explizites Composition-Root (`app/bootstrap/wiring.py` mit `build_gui_dependencies()`/`AppDependencies`), und `QuizApp` verwendet die Shared-Shell-Basis `bw_libs/app_shell.py`.
-- G2.2 erweitert: `app/storage/progress.py` nutzt jetzt zentrale Atomic-Text-Writes, und Legacy-Migrationen in `app/storage/app_state_store.py` schreiben atomisch ueber `bw_libs/app_paths.py`.
+- G2.2 erweitert: `app/storage/progress.py` nutzt jetzt zentrale Atomic-Text-Writes, und `app/storage/app_state_store.py` schreibt atomisch ueber `bw_libs/app_paths.py`.
 - G2.1 gestartet: Shared-Modul `bw_libs/app_paths.py` eingefuehrt (AppPaths-Discovery sowie atomische JSON/Text-Write-Helfer).
 - Persistenz-Pilot: `app/storage/app_state_store.py` nutzt jetzt die zentrale `atomic_write_json`-API.
 - Guardrails beruecksichtigen `bw_libs/app_paths.py` als relevanten Shared-Pfad.
