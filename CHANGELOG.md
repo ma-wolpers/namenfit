@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- App startup now initializes the root window via shared `bw_gui.runtime.ui` aliases instead of importing `tkinter` directly in `app/app.py`.
 - Startup and source-selection dialogs now use shared `bw_gui.dialogs` services, reducing direct tkinter dialog coupling.
 - Pilot integration for the shared GUI core started: Namenfit now resolves keybinding, popup, and HSM contracts through the shared `bw-gui` core (via submodule bridge).
 - Test discovery is now limited to repository tests (`pytest.ini`) so submodule test suites are excluded from normal Namenfit test runs.

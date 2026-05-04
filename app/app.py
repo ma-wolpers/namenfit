@@ -9,7 +9,10 @@ Dieses Modul hält bewusst nur den Ablauf zusammen:
 Fachlogik, Persistenz und UI-Teilbereiche liegen in eigenen Modulen.
 """
 
-import tkinter as tk
+from bw_libs.shared_gui_core import ensure_bw_gui_on_path
+
+ensure_bw_gui_on_path()
+from bw_gui.runtime import ui
 
 from .bootstrap.wiring import build_gui_dependencies
 from .core.models import LEVEL_1, LEVEL_2, MODE_COMBINED, MODE_CSV
@@ -41,7 +44,7 @@ def main():
         if not selection:
             return
 
-        root = tk.Tk()
+        root = ui.Tk()
         _focus_window(root)
 
         selected_level = LEVEL_1
