@@ -1,6 +1,9 @@
 """Gemeinsamer Menüaufbau für Lernoptionen (Startdialog + Quizfenster)."""
 
-import tkinter as tk
+from bw_libs.shared_gui_core import ensure_bw_gui_on_path
+
+ensure_bw_gui_on_path()
+from bw_gui.runtime import ui
 
 from ..core.learning_profiles import (
     CUSTOM_PROFILE,
@@ -35,7 +38,7 @@ def populate_learning_menu(
     """Befüllt ein Menü mit allen Lern-Controls inkl. optionalen Presets."""
 
     if learning_profile_var is not None and callable(on_learning_profile_changed):
-        preset_menu = tk.Menu(learning_menu, tearoff=0)
+        preset_menu = ui.Menu(learning_menu, tearoff=0)
         for profile_key in LEARNING_PROFILE_ORDER:
             profile = LEARNING_PROFILES.get(profile_key)
             if not profile:
@@ -86,7 +89,7 @@ def populate_learning_menu(
 
     learning_menu.add_separator()
 
-    min_delay_menu = tk.Menu(learning_menu, tearoff=0)
+    min_delay_menu = ui.Menu(learning_menu, tearoff=0)
     for seconds in MIN_RETRIEVAL_OPTIONS:
         label = (
             "Mindest-Denkzeit: aus" if seconds == 0 else f"Mindest-Denkzeit: {seconds}s"
@@ -105,7 +108,7 @@ def populate_learning_menu(
         command=on_learning_toggles_changed,
     )
 
-    slow_threshold_menu = tk.Menu(learning_menu, tearoff=0)
+    slow_threshold_menu = ui.Menu(learning_menu, tearoff=0)
     for seconds in SLOW_CORRECT_THRESHOLD_OPTIONS:
         slow_threshold_menu.add_radiobutton(
             label=f"Basis-Schwelle (≈ 6 Buchstaben): ≥ {seconds}s",
@@ -117,7 +120,7 @@ def populate_learning_menu(
         label="Langsam-richtig-Schwelle (Basis)", menu=slow_threshold_menu
     )
 
-    feedback_menu = tk.Menu(learning_menu, tearoff=0)
+    feedback_menu = ui.Menu(learning_menu, tearoff=0)
     for style_key in FEEDBACK_STYLE_OPTIONS:
         label = {
             "sarkastisch": "Feedback: Sarkastisch",

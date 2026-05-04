@@ -14,6 +14,7 @@ The format is based on Keep a Changelog.
 ### Changed
 - App startup now initializes the root window via shared `bw_gui.runtime.ui` aliases instead of importing `tkinter` directly in `app/app.py`.
 - Window identity/icon helpers now use shared `bw_gui.runtime.ui` aliases in `app/ui/window_identity.py` instead of importing `tkinter` directly.
+- Level selection and learning menu builders now use shared `bw_gui.runtime.ui` aliases (`app/ui/level_dialog.py`, `app/ui/learning_menu.py`) instead of direct `tkinter` imports.
 - Startup and source-selection dialogs now use shared `bw_gui.dialogs` services, reducing direct tkinter dialog coupling.
 - Pilot integration for the shared GUI core started: Namenfit now resolves keybinding, popup, and HSM contracts through the shared `bw-gui` core (via submodule bridge).
 - Test discovery is now limited to repository tests (`pytest.ini`) so submodule test suites are excluded from normal Namenfit test runs.

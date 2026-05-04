@@ -18,6 +18,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Tk-Runtime-Pilotmigration erweitert: `app/ui/level_dialog.py` und `app/ui/learning_menu.py` nutzen jetzt `bw_gui.runtime.ui` statt direkter `tkinter`-Imports.
 - Tk-Runtime-Pilotmigration erweitert: `app/ui/window_identity.py` nutzt jetzt `bw_gui.runtime.ui`-Typen/Exceptions statt direktem `tkinter`-Import.
 - Tk-Runtime-Pilotmigration erweitert: `app/app.py` nutzt jetzt `bw_gui.runtime.ui` fuer den Root-Window-Start statt direktem `tkinter`-Import.
 - Shared-Dialogmigration gestartet: zentrale Bridge `app/ui/dialog_services.py` auf `bw_gui.dialogs` eingefuehrt; `app/app.py` sowie `app/ui/startup_dialog.py` nutzen jetzt Shared `messagebox`/`filedialog`-Services statt direkter `tkinter`-Dialogimports.
