@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Pilot integration for the shared GUI core started: Namenfit now resolves keybinding, popup, and HSM contracts through the shared `bw-gui` core (via submodule bridge).
+- Test discovery is now limited to repository tests (`pytest.ini`) so submodule test suites are excluded from normal Namenfit test runs.
 - Source-path persistence now uses only the future format (absolute source paths) without workspace-folder coupling; legacy `7THCLOUD_REL::` handling and old recent-file migration paths were removed.
 - App path discovery in config/bootstrap/session is fully harmonized to shared `bw_libs.app_paths.AppPaths` without legacy migration branches.
 - App identity metadata is now centralized in `app/app_info.py` and used as the source for startup shell identity and app-data folder naming.
