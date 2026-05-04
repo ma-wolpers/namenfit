@@ -2,9 +2,9 @@
 
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
 
 from ..config import DataSourceSelection
+from .dialog_services import filedialog, messagebox
 from .learning_menu import populate_learning_menu
 from ..core.learning_profiles import (
     CUSTOM_PROFILE,

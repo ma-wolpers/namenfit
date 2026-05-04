@@ -10,11 +10,11 @@ Fachlogik, Persistenz und UI-Teilbereiche liegen in eigenen Modulen.
 """
 
 import tkinter as tk
-from tkinter import messagebox
 
 from .bootstrap.wiring import build_gui_dependencies
 from .core.models import LEVEL_1, LEVEL_2, MODE_COMBINED, MODE_CSV
 from .core.session import CombinedSourceMismatchError, build_runtime_session
+from .ui.dialog_services import messagebox
 from .ui import ui
 from .ui.startup_dialog import ask_data_source_dialog
 from .ui.window_identity import configure_windows_process_identity

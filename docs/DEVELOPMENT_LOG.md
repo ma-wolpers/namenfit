@@ -18,6 +18,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Shared-Dialogmigration gestartet: zentrale Bridge `app/ui/dialog_services.py` auf `bw_gui.dialogs` eingefuehrt; `app/app.py` sowie `app/ui/startup_dialog.py` nutzen jetzt Shared `messagebox`/`filedialog`-Services statt direkter `tkinter`-Dialogimports.
 - Pilotmigration zum gemeinsamen GUI-Core gestartet: `bw-gui` als Git-Submodule eingebunden und `bw_libs/ui_contract/*` via Bridge auf `bw_gui.contracts.*` umgestellt, sodass Keybinding-/Popup-/HSM-Vertraege aus der gemeinsamen Quelle geladen werden.
 - Testsuche gehaertet: `pytest.ini` begrenzt die Sammlung auf `tests`, damit Submodule-Tests nicht unbeabsichtigt in Namenfit-Laeufe einfließen.
 - Legacy-Modus abgeschlossen und deprecated: `app/storage/app_state_store.py` verarbeitet nur noch das Zukunftsformat (absolute Quellenpfade); 7thCloud-Relative-Prefix-Parsing und alte Recent-File-Migrationspfade wurden entfernt.
