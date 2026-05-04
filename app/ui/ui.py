@@ -3,10 +3,13 @@
 import math
 import random
 import struct
-import tkinter as tk
 import wave
 from io import BytesIO
-from tkinter import ttk
+from bw_libs.shared_gui_core import ensure_bw_gui_on_path
+
+ensure_bw_gui_on_path()
+from bw_gui.runtime import ui, widgets
+
 from time import perf_counter
 from PIL import Image, ImageTk
 
@@ -216,28 +219,28 @@ class QuizApp:
     def _build_menu(self):
         """Erstellt die Menüleiste inkl. Theme-Auswahl."""
 
-        self.theme_var = tk.StringVar(value=self.theme_key)
-        self.review_profile_var = tk.StringVar(value=self.progress_store.get_review_profile())
-        self.learning_profile_var = tk.StringVar(value=self.progress_store.get_learning_profile_key())
-        self.allow_immediate_repeat_var = tk.BooleanVar(value=self.progress_store.get_allow_immediate_repeat())
-        self.prioritize_urgent_var = tk.BooleanVar(value=self.progress_store.get_prioritize_urgent_repeats())
-        self.mix_new_cards_var = tk.BooleanVar(value=self.progress_store.get_mix_new_cards())
-        self.min_retrieval_seconds_var = tk.IntVar(value=self.progress_store.get_min_retrieval_seconds())
-        self.revisit_slow_correct_var = tk.BooleanVar(value=self.progress_store.get_revisit_slow_correct())
-        self.slow_correct_threshold_var = tk.IntVar(value=self.progress_store.get_slow_correct_threshold_seconds())
-        self.feedback_style_var = tk.StringVar(value=self.progress_store.get_feedback_style())
-        self.debug_show_panel_var = tk.BooleanVar(value=bool(self.debug_options.get("show_debug_panel", False)))
-        self.debug_show_paths_var = tk.BooleanVar(value=bool(self.debug_options.get("show_paths", False)))
-        self.sound_enabled_var = tk.BooleanVar(value=self.sound_enabled)
-        self.sound_volume_var = tk.IntVar(value=self.sound_volume)
-        self.level2_group_gate_var = tk.BooleanVar(value=self.level2_require_group_before_neighbors)
+        self.theme_var = ui.StringVar(value=self.theme_key)
+        self.review_profile_var = ui.StringVar(value=self.progress_store.get_review_profile())
+        self.learning_profile_var = ui.StringVar(value=self.progress_store.get_learning_profile_key())
+        self.allow_immediate_repeat_var = ui.BooleanVar(value=self.progress_store.get_allow_immediate_repeat())
+        self.prioritize_urgent_var = ui.BooleanVar(value=self.progress_store.get_prioritize_urgent_repeats())
+        self.mix_new_cards_var = ui.BooleanVar(value=self.progress_store.get_mix_new_cards())
+        self.min_retrieval_seconds_var = ui.IntVar(value=self.progress_store.get_min_retrieval_seconds())
+        self.revisit_slow_correct_var = ui.BooleanVar(value=self.progress_store.get_revisit_slow_correct())
+        self.slow_correct_threshold_var = ui.IntVar(value=self.progress_store.get_slow_correct_threshold_seconds())
+        self.feedback_style_var = ui.StringVar(value=self.progress_store.get_feedback_style())
+        self.debug_show_panel_var = ui.BooleanVar(value=bool(self.debug_options.get("show_debug_panel", False)))
+        self.debug_show_paths_var = ui.BooleanVar(value=bool(self.debug_options.get("show_paths", False)))
+        self.sound_enabled_var = ui.BooleanVar(value=self.sound_enabled)
+        self.sound_volume_var = ui.IntVar(value=self.sound_volume)
+        self.level2_group_gate_var = ui.BooleanVar(value=self.level2_require_group_before_neighbors)
 
-        menu_bar = tk.Menu(self.root)
-        view_menu = tk.Menu(menu_bar, tearoff=0)
-        learning_menu = tk.Menu(menu_bar, tearoff=0)
-        debug_menu = tk.Menu(menu_bar, tearoff=0)
-        sound_menu = tk.Menu(menu_bar, tearoff=0)
-        seat_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar = ui.Menu(self.root)
+        view_menu = ui.Menu(menu_bar, tearoff=0)
+        learning_menu = ui.Menu(menu_bar, tearoff=0)
+        debug_menu = ui.Menu(menu_bar, tearoff=0)
+        sound_menu = ui.Menu(menu_bar, tearoff=0)
+        seat_menu = ui.Menu(menu_bar, tearoff=0)
 
         populate_theme_menu(view_menu, self.theme_var, self._on_theme_changed)
 
@@ -465,21 +468,21 @@ class QuizApp:
         """Erstellt das UI in logisch getrennten Blöcken."""
 
         # Foto-Anzeige (für Foto-Modi)
-        self.photo_label = tk.Label(self.root, bg=BG_MAIN)
+        self.photo_label = ui.Label(self.root, bg=BG_MAIN)
         # Initial nicht gepackt, wird in _apply_level_widgets gezeigt
 
-        self.prompt_label = tk.Label(self.root, text="", font=("Arial", 18), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.prompt_label = ui.Label(self.root, text="", font=("Arial", 18), bg=BG_MAIN, fg=FG_PRIMARY)
         self.prompt_label.pack(pady=10)
 
-        self.result_label = tk.Label(self.root, text="", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.result_label = ui.Label(self.root, text="", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
         self.result_label.pack(pady=(0, 8))
 
         # Name-Eingabe (für Foto-Modi)
-        self.name_label = tk.Label(self.root, text="Name:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.name_entry = tk.Entry(self.root, font=("Arial", 14))
+        self.name_label = ui.Label(self.root, text="Name:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.name_entry = ui.Entry(self.root, font=("Arial", 14))
         style_entry(self.name_entry, self.theme_key)
 
-        self.group_label = tk.Label(
+        self.group_label = ui.Label(
             self.root,
             text=f"{self._group_term()}:",
             font=("Arial", 12),
@@ -487,28 +490,28 @@ class QuizApp:
             fg=FG_PRIMARY,
         )
         self.group_label.pack()
-        self.group_entry = tk.Entry(self.root, font=("Arial", 14))
+        self.group_entry = ui.Entry(self.root, font=("Arial", 14))
         style_entry(self.group_entry, self.theme_key)
         self.group_entry.pack(pady=(0, 8))
 
-        self.level2_frame = tk.Frame(self.root, bg=BG_MAIN)
+        self.level2_frame = ui.Frame(self.root, bg=BG_MAIN)
         self.level2_frame.pack(pady=(0, 8))
 
-        self.behind_label = tk.Label(self.level2_frame, text="Dahinter:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.behind_entry = tk.Entry(self.level2_frame, font=("Arial", 14))
+        self.behind_label = ui.Label(self.level2_frame, text="Dahinter:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.behind_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
         style_entry(self.behind_entry, self.theme_key)
-        self.opposite_label = tk.Label(self.level2_frame, text="Gegenüber:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.opposite_entry = tk.Entry(self.level2_frame, font=("Arial", 14))
+        self.opposite_label = ui.Label(self.level2_frame, text="Gegenüber:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.opposite_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
         style_entry(self.opposite_entry, self.theme_key)
-        self.front_label = tk.Label(self.level2_frame, text="Davor:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.front_entry = tk.Entry(self.level2_frame, font=("Arial", 14))
+        self.front_label = ui.Label(self.level2_frame, text="Davor:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.front_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
         style_entry(self.front_entry, self.theme_key)
 
-        self.solve_button = tk.Button(self.root, text="Auflösen", command=self.solve)
+        self.solve_button = ui.Button(self.root, text="Auflösen", command=self.solve)
         style_primary_button(self.solve_button, self.theme_key)
         self.solve_button.pack(pady=(2, 2))
 
-        self.typo_button = tk.Button(
+        self.typo_button = ui.Button(
             self.root,
             text="Ups, vertippt",
             command=self.mark_name_typo,
@@ -517,12 +520,12 @@ class QuizApp:
         self.typo_button.pack(pady=(0, 4))
         self.typo_button.pack_forget()
 
-        self.next_button = tk.Button(self.root, text="Weiter", command=self.next_person)
+        self.next_button = ui.Button(self.root, text="Weiter", command=self.next_person)
         style_primary_button(self.next_button, self.theme_key)
         self.next_button.pack(pady=5)
         self.next_button.pack_forget()
 
-        self.switch_level_button = tk.Button(
+        self.switch_level_button = ui.Button(
             self.root,
             text="Level wechseln",
             command=self.switch_level,
@@ -530,16 +533,16 @@ class QuizApp:
         style_secondary_button(self.switch_level_button, self.theme_key)
         self.switch_level_button.pack(pady=(2, 6))
 
-        self.stats_label = tk.Label(self.root, text="", font=("Arial", 10), fg=FG_MUTED, bg=BG_MAIN)
+        self.stats_label = ui.Label(self.root, text="", font=("Arial", 10), fg=FG_MUTED, bg=BG_MAIN)
         self.stats_label.pack(pady=(0, 8))
 
-        self.aggregate_stats_label = tk.Label(self.root, text="", font=("Arial", 9), fg=FG_MUTED, bg=BG_MAIN)
+        self.aggregate_stats_label = ui.Label(self.root, text="", font=("Arial", 9), fg=FG_MUTED, bg=BG_MAIN)
         self.aggregate_stats_label.pack(pady=(0, 8))
 
-        self.feedback_label = tk.Label(self.root, text="", font=("Arial", 9, "bold"), fg=FG_PRIMARY, bg=BG_MAIN)
+        self.feedback_label = ui.Label(self.root, text="", font=("Arial", 9, "bold"), fg=FG_PRIMARY, bg=BG_MAIN)
         self.feedback_label.pack(pady=(6, 8))
 
-        self.debug_label = tk.Label(self.root, text="", font=("Arial", 8), fg=FG_MUTED, bg=BG_MAIN)
+        self.debug_label = ui.Label(self.root, text="", font=("Arial", 8), fg=FG_MUTED, bg=BG_MAIN)
         self.debug_label.pack(pady=(0, 6))
 
     def _bind_shortcuts(self):
@@ -622,7 +625,7 @@ class QuizApp:
     def _is_editable_widget(widget):
         if widget is None:
             return False
-        return isinstance(widget, (tk.Entry, tk.Text, tk.Spinbox, ttk.Entry, ttk.Combobox))
+        return isinstance(widget, (ui.Entry, ui.Text, ui.Spinbox, widgets.Entry, widgets.Combobox))
 
     def _track_popup_window(self, window, *, policy_id="dialog.modal"):
         popup_id = str(window)
@@ -634,7 +637,7 @@ class QuizApp:
     def _sync_popup_sessions_from_windows(self):
         visible_popup_ids = set()
         for child in self.root.winfo_children():
-            if not isinstance(child, tk.Toplevel):
+            if not isinstance(child, ui.Toplevel):
                 continue
             try:
                 if not int(child.winfo_exists()):
@@ -740,7 +743,7 @@ class QuizApp:
             return False
         popup_id = active_popup.popup_id
         for child in self.root.winfo_children():
-            if not isinstance(child, tk.Toplevel):
+            if not isinstance(child, ui.Toplevel):
                 continue
             if str(child) != popup_id:
                 continue
@@ -787,31 +790,31 @@ class QuizApp:
             existing.focus_force()
             return
 
-        window = tk.Toplevel(self.root)
+        window = ui.Toplevel(self.root)
         window.title("Shortcut Runtime Debug")
         window.geometry("980x520")
         window.minsize(820, 420)
         self._track_popup_window(window, policy_id="dialog.non_blocking")
 
-        self._shortcut_runtime_debug_context_var = tk.StringVar(master=window, value="")
-        self._shortcut_runtime_debug_summary_var = tk.StringVar(master=window, value="")
-        self._shortcut_runtime_debug_offline_var = tk.BooleanVar(master=window, value=bool(self._shortcut_debug_offline))
+        self._shortcut_runtime_debug_context_var = ui.StringVar(master=window, value="")
+        self._shortcut_runtime_debug_summary_var = ui.StringVar(master=window, value="")
+        self._shortcut_runtime_debug_offline_var = ui.BooleanVar(master=window, value=bool(self._shortcut_debug_offline))
 
-        toolbar = ttk.Frame(window, padding=(10, 8))
+        toolbar = widgets.Frame(window, padding=(10, 8))
         toolbar.pack(fill="x")
-        ttk.Label(toolbar, textvariable=self._shortcut_runtime_debug_context_var).pack(side="left", fill="x", expand=True)
-        ttk.Checkbutton(
+        widgets.Label(toolbar, textvariable=self._shortcut_runtime_debug_context_var).pack(side="left", fill="x", expand=True)
+        widgets.Checkbutton(
             toolbar,
             text="Offline simulieren",
             variable=self._shortcut_runtime_debug_offline_var,
             command=self._on_shortcut_runtime_offline_var_changed,
         ).pack(side="left", padx=(12, 0))
-        ttk.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog).pack(side="left", padx=(8, 0))
+        widgets.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog).pack(side="left", padx=(8, 0))
 
-        body = ttk.Frame(window, padding=(10, 0, 10, 8))
+        body = widgets.Frame(window, padding=(10, 0, 10, 8))
         body.pack(fill="both", expand=True)
         columns = ("mode", "key", "binding", "status", "reason")
-        table = ttk.Treeview(body, columns=columns, show="headings")
+        table = widgets.Treeview(body, columns=columns, show="headings")
         table.heading("mode", text="Mode")
         table.heading("key", text="Key")
         table.heading("binding", text="Binding")
@@ -823,11 +826,11 @@ class QuizApp:
         table.column("status", width=90, anchor="center", stretch=False)
         table.column("reason", width=180, anchor="w", stretch=True)
         table.pack(side="left", fill="both", expand=True)
-        y_scroll = ttk.Scrollbar(body, orient="vertical", command=table.yview)
+        y_scroll = widgets.Scrollbar(body, orient="vertical", command=table.yview)
         y_scroll.pack(side="right", fill="y")
         table.configure(yscrollcommand=y_scroll.set)
 
-        ttk.Label(window, textvariable=self._shortcut_runtime_debug_summary_var).pack(fill="x", padx=10, pady=(0, 8))
+        widgets.Label(window, textvariable=self._shortcut_runtime_debug_summary_var).pack(fill="x", padx=10, pady=(0, 8))
 
         self._shortcut_runtime_debug_window = window
         self._shortcut_runtime_debug_table = table
@@ -1463,7 +1466,7 @@ class QuizApp:
         )
         for entry in entries:
             entry.configure(state="normal")
-            entry.delete(0, tk.END)
+            entry.delete(0, ui.END)
 
     def _pick_feedback_line(self, task_score, component_results):
         """Erzeugt eine Rückmeldung gemäß gewähltem Feedback-Stil."""
@@ -2371,7 +2374,7 @@ class QuizApp:
         entry = self._entry_for_field(target_field)
         if entry:
             entry.configure(state="normal")
-            entry.delete(0, tk.END)
+            entry.delete(0, ui.END)
 
         self.result_label.config(text="↩️ Eingabe zurückgesetzt – bitte neu eingeben.")
         self._set_result_neutral_style()
@@ -2414,3 +2417,5 @@ class QuizApp:
                 self.solve_button.config(text="Auflösen")
 
         self._show_action_button()
+
+
