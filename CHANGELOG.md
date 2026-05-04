@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Source-path persistence is no longer restricted to `7thCloud`-relative locations; startup source selections are now persisted without workspace-folder coupling (legacy prefixed entries remain readable).
 - App path discovery in config/bootstrap/session is now fully harmonized to shared `bw_libs.app_paths.AppPaths`, while preserving legacy app-state migration locations.
 - App identity metadata is now centralized in `app/app_info.py` and used as the source for startup shell identity and app-data folder naming.
 - Startup wiring now goes through a centralized GUI dependency builder and applies a shared Tk shell lifecycle configuration (`bw_libs/app_shell.py`).

@@ -18,6 +18,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Quellenpersistenz entkoppelt: `app/storage/app_state_store.py` speichert Quellenpfade jetzt ohne `7thCloud`-Ordnerkopplung, Startup-Hinweise zu "ausserhalb von 7thCloud" wurden entfernt; Legacy-Prefix-Werte bleiben lesbar.
 - Optional G2.3.3 abgeschlossen: app-spezifische Pfadauflosung in `app/config.py` auf zentrales `bw_libs.app_paths.AppPaths` harmonisiert; Bootstrap/Session nutzen jetzt die Shared-Discovery inkl. unveraenderter Legacy-Migrationspfade.
 - G5 abgeschlossen: AppIdentity-Manifest `app/app_info.py` eingefuehrt und fuer Startup-Metadaten (Window-Titel/AppData-Folder) als Single-Source in Bootstrap/Config verdrahtet.
 - G3/G4 gestartet: GUI-Startup nutzt jetzt ein explizites Composition-Root (`app/bootstrap/wiring.py` mit `build_gui_dependencies()`/`AppDependencies`), und `QuizApp` verwendet die Shared-Shell-Basis `bw_libs/app_shell.py`.

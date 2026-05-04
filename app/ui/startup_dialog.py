@@ -306,15 +306,6 @@ def ask_data_source_dialog(recent_store):
         _focus_dialog_window()
         if chosen:
             result["csv_paths"] = list(chosen)
-            non_storable = [
-                path for path in result["csv_paths"] if not recent_store.can_store_source_path(path)
-            ]
-            if non_storable:
-                messagebox.showwarning(
-                    "Hinweis",
-                    "Einige Quellen liegen außerhalb von 7thCloud und werden deshalb nicht gespeichert.",
-                    parent=dialog,
-                )
             recent_store.set_last_dialog_dir("csv_source", result["csv_paths"][0])
             _set_csv_label()
             _render_csv_selected_items()
@@ -408,12 +399,6 @@ def ask_data_source_dialog(recent_store):
             }
             if os.path.normcase(normalized) not in existing_norm:
                 result["photo_folders"].append(normalized)
-            if not recent_store.can_store_source_path(normalized):
-                messagebox.showwarning(
-                    "Hinweis",
-                    "Dieser Ordner liegt außerhalb von 7thCloud und wird deshalb nicht gespeichert.",
-                    parent=dialog,
-                )
             recent_store.set_last_dialog_dir("photo_source", normalized)
             _set_photo_label()
             _render_photo_selected_items()
@@ -469,15 +454,6 @@ def ask_data_source_dialog(recent_store):
 
         result["prompt_limit"] = _label_to_prompt(prompt_limit_var.get())
         recent_store.set_prompt_limit_default(result["prompt_limit"])
-        if any(
-            not recent_store.can_store_source_path(path)
-            for path in result["csv_paths"] + result["photo_folders"]
-        ):
-            messagebox.showwarning(
-                "Hinweis",
-                "Quellen außerhalb von 7thCloud werden für den nächsten Start nicht gespeichert.",
-                parent=dialog,
-            )
         result["confirmed"] = True
         dialog.quit()
 

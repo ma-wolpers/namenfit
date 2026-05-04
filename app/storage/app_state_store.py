@@ -30,8 +30,7 @@ DEFAULT_SOUND_OPTIONS = {
 }
 DEFAULT_LEVEL2_REQUIRE_GROUP_BEFORE_NEIGHBORS = False
 
-RELATIVE_7THCLOUD_PREFIX = "7THCLOUD_REL::"
-ROOT_FOLDER_NAME = "7thCloud"
+LEGACY_RELATIVE_PREFIX = "7THCLOUD_REL::"
 
 
 def _norm(path):
@@ -42,37 +41,22 @@ def _normalize_level2_group_gate(value):
     return bool(value)
 
 
-def _find_root_named(path, root_name):
-    if not isinstance(path, str) or not path.strip():
-        return None
+def _resolve_legacy_workspace_root():
+    for probe in (os.getcwd(), __file__):
+        current = os.path.abspath(probe)
+        if not os.path.isdir(current):
+            current = os.path.dirname(current)
+        if not current:
+            continue
 
-    current = os.path.abspath(path)
-    if not os.path.isdir(current):
-        current = os.path.dirname(current)
+        while True:
+            if os.path.isdir(os.path.join(current, "7thVault")):
+                return current
 
-    if not current:
-        return None
-
-    expected = root_name.casefold()
-    while True:
-        base = os.path.basename(current.rstrip("\\/"))
-        if base and base.casefold() == expected:
-            return current
-
-        parent = os.path.dirname(current)
-        if parent == current:
-            return None
-        current = parent
-
-
-def _resolve_7thcloud_root():
-    from_cwd = _find_root_named(os.getcwd(), ROOT_FOLDER_NAME)
-    if from_cwd:
-        return from_cwd
-
-    from_module = _find_root_named(__file__, ROOT_FOLDER_NAME)
-    if from_module:
-        return from_module
+            parent = os.path.dirname(current)
+            if parent == current:
+                break
+            current = parent
 
     return None
 
@@ -81,29 +65,16 @@ def _serialize_source_path(path):
     if not isinstance(path, str) or not path.strip():
         return None
 
-    absolute = os.path.abspath(path)
-    root = _find_root_named(absolute, ROOT_FOLDER_NAME)
-    if not root:
-        return None
-
-    try:
-        relative = os.path.relpath(absolute, root)
-    except ValueError:
-        return None
-
-    if relative.startswith(".."):
-        return None
-
-    return RELATIVE_7THCLOUD_PREFIX + relative.replace("\\", "/")
+    return os.path.abspath(path)
 
 
 def _deserialize_source_path(value):
     if not isinstance(value, str) or not value.strip():
         return None
 
-    if value.startswith(RELATIVE_7THCLOUD_PREFIX):
-        relative = value[len(RELATIVE_7THCLOUD_PREFIX) :].replace("/", os.sep)
-        root = _resolve_7thcloud_root()
+    if value.startswith(LEGACY_RELATIVE_PREFIX):
+        relative = value[len(LEGACY_RELATIVE_PREFIX) :].replace("/", os.sep)
+        root = _resolve_legacy_workspace_root()
         if not root:
             return None
         return os.path.abspath(os.path.join(root, relative))
