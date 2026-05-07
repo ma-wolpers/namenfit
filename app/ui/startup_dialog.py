@@ -1,7 +1,8 @@
-"""Startdialog für Quellauswahl inkl. 'Zuletzt geöffnet'."""
+﻿"""Startdialog fÃ¼r Quellauswahl inkl. 'Zuletzt geÃ¶ffnet'."""
 
 import os
-import tkinter as tk
+
+from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 from ..config import DataSourceSelection
 from .dialog_services import filedialog, messagebox
@@ -25,10 +26,14 @@ from .ui_theme import (
 from .window_identity import apply_window_icon
 
 
-def ask_data_source_dialog(recent_store):
-    """Öffnet den Startdialog und liefert eine Datenquellen-Auswahl oder None."""
+ensure_bw_gui_on_path()
+from bw_gui.runtime import ui
 
-    dialog = tk.Tk()
+
+def ask_data_source_dialog(recent_store):
+    """Ã–ffnet den Startdialog und liefert eine Datenquellen-Auswahl oder None."""
+
+    dialog = ui.Tk()
     apply_window_icon(dialog)
     dialog.title("Namens-Trainer starten")
     dialog.resizable(False, False)
@@ -57,38 +62,38 @@ def ask_data_source_dialog(recent_store):
         recent_data.get("learning_defaults", {})
     )
 
-    learning_profile_var = tk.StringVar(
+    learning_profile_var = ui.StringVar(
         value=learning_settings.get("learning_profile", CUSTOM_PROFILE)
     )
-    review_profile_var = tk.StringVar(
+    review_profile_var = ui.StringVar(
         value=learning_settings.get("review_profile", "mittel")
     )
-    allow_immediate_repeat_var = tk.BooleanVar(
+    allow_immediate_repeat_var = ui.BooleanVar(
         value=bool(learning_settings.get("allow_immediate_repeat", False))
     )
-    prioritize_urgent_var = tk.BooleanVar(
+    prioritize_urgent_var = ui.BooleanVar(
         value=bool(learning_settings.get("prioritize_urgent_repeats", True))
     )
-    mix_new_cards_var = tk.BooleanVar(
+    mix_new_cards_var = ui.BooleanVar(
         value=bool(learning_settings.get("mix_new_cards", False))
     )
-    min_retrieval_seconds_var = tk.IntVar(
+    min_retrieval_seconds_var = ui.IntVar(
         value=int(learning_settings.get("min_retrieval_seconds", 0))
     )
-    revisit_slow_correct_var = tk.BooleanVar(
+    revisit_slow_correct_var = ui.BooleanVar(
         value=bool(learning_settings.get("revisit_slow_correct", False))
     )
-    slow_correct_threshold_var = tk.IntVar(
+    slow_correct_threshold_var = ui.IntVar(
         value=int(learning_settings.get("slow_correct_threshold_seconds", 6))
     )
-    feedback_style_var = tk.StringVar(
+    feedback_style_var = ui.StringVar(
         value=learning_settings.get("feedback_style", "ermutigend")
     )
     debug_options = recent_store.get_debug_options()
-    debug_show_panel_var = tk.BooleanVar(
+    debug_show_panel_var = ui.BooleanVar(
         value=bool(debug_options.get("show_debug_panel", False))
     )
-    debug_show_paths_var = tk.BooleanVar(
+    debug_show_paths_var = ui.BooleanVar(
         value=bool(debug_options.get("show_paths", False))
     )
 
@@ -166,23 +171,23 @@ def ask_data_source_dialog(recent_store):
     def _on_debug_options_changed():
         _persist_debug_options()
 
-    container = tk.Frame(dialog, bg=_theme()["bg_main"])
+    container = ui.Frame(dialog, bg=_theme()["bg_main"])
     container.pack(padx=14, pady=12)
 
-    heading_label = tk.Label(
+    heading_label = ui.Label(
         container,
-        text="Sitzpläne und/oder Fotos auswählen:",
+        text="SitzplÃ¤ne und/oder Fotos auswÃ¤hlen:",
         font=("Arial", 12, "bold"),
         bg=_theme()["bg_main"],
         fg=_theme()["fg_primary"],
     )
     heading_label.pack(anchor="w", pady=(0, 8))
 
-    prompt_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    prompt_frame = ui.Frame(container, bg=_theme()["bg_main"])
     prompt_frame.pack(fill="x", pady=(0, 8))
-    prompt_label = tk.Label(
+    prompt_label = ui.Label(
         prompt_frame,
-        text="Rundenlänge:",
+        text="RundenlÃ¤nge:",
         width=12,
         anchor="w",
         bg=_theme()["bg_main"],
@@ -209,7 +214,7 @@ def ask_data_source_dialog(recent_store):
                 return value
         return 80
 
-    prompt_limit_var = tk.StringVar(value=_prompt_to_label(prompt_limit_default))
+    prompt_limit_var = ui.StringVar(value=_prompt_to_label(prompt_limit_default))
 
     def _on_prompt_limit_changed(*_args):
         selected_label = prompt_limit_var.get()
@@ -217,7 +222,7 @@ def ask_data_source_dialog(recent_store):
         result["prompt_limit"] = selected_limit
         recent_store.set_prompt_limit_default(selected_limit)
 
-    prompt_menu = tk.OptionMenu(
+    prompt_menu = ui.OptionMenu(
         prompt_frame, prompt_limit_var, *[label for label, _ in prompt_choices]
     )
     style_secondary_button(prompt_menu, theme_key)
@@ -225,9 +230,9 @@ def ask_data_source_dialog(recent_store):
     prompt_menu.pack(side="left")
     prompt_limit_var.trace_add("write", _on_prompt_limit_changed)
 
-    csv_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    csv_frame = ui.Frame(container, bg=_theme()["bg_main"])
     csv_frame.pack(fill="x", pady=(0, 6))
-    csv_label = tk.Label(
+    csv_label = ui.Label(
         csv_frame,
         text="CSV-Dateien:",
         width=12,
@@ -236,8 +241,8 @@ def ask_data_source_dialog(recent_store):
         fg=_theme()["fg_primary"],
     )
     csv_label.pack(side="left")
-    csv_name_var = tk.StringVar(value="(nicht gewählt)")
-    csv_name_label = tk.Label(
+    csv_name_var = ui.StringVar(value="(nicht gewÃ¤hlt)")
+    csv_name_label = ui.Label(
         csv_frame,
         textvariable=csv_name_var,
         width=34,
@@ -250,14 +255,14 @@ def ask_data_source_dialog(recent_store):
     def _set_csv_label():
         csv_paths = result["csv_paths"]
         if not csv_paths:
-            csv_name_var.set("(nicht gewählt)")
+            csv_name_var.set("(nicht gewÃ¤hlt)")
             return
         if len(csv_paths) == 1:
             csv_name_var.set(os.path.basename(csv_paths[0]))
             return
-        csv_name_var.set(f"{len(csv_paths)} Dateien ausgewählt")
+        csv_name_var.set(f"{len(csv_paths)} Dateien ausgewÃ¤hlt")
 
-    csv_selected_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    csv_selected_frame = ui.Frame(container, bg=_theme()["bg_main"])
     csv_selected_frame.pack(fill="x", pady=(0, 6))
 
     def _remove_csv_path(path):
@@ -275,16 +280,16 @@ def ask_data_source_dialog(recent_store):
             child.destroy()
 
         for csv_path in result["csv_paths"]:
-            row = tk.Frame(csv_selected_frame, bg=_theme()["bg_main"])
+            row = ui.Frame(csv_selected_frame, bg=_theme()["bg_main"])
             row.pack(fill="x", pady=(0, 2))
-            tk.Label(
+            ui.Label(
                 row,
-                text=f"• {os.path.basename(csv_path)}",
+                text=f"â€¢ {os.path.basename(csv_path)}",
                 anchor="w",
                 bg=_theme()["bg_main"],
                 fg=_theme()["fg_muted"],
             ).pack(side="left", fill="x", expand=True)
-            remove_button = tk.Button(
+            remove_button = ui.Button(
                 row,
                 text="X",
                 width=2,
@@ -295,7 +300,7 @@ def ask_data_source_dialog(recent_store):
 
     def choose_csv():
         dialog_kwargs = {
-            "title": "CSV-Dateien auswählen",
+            "title": "CSV-Dateien auswÃ¤hlen",
             "filetypes": [("CSV Dateien", "*.csv")],
         }
         initial_csv_dir = recent_store.get_last_dialog_dir("csv_source")
@@ -310,13 +315,13 @@ def ask_data_source_dialog(recent_store):
             _set_csv_label()
             _render_csv_selected_items()
 
-    choose_csv_button = tk.Button(csv_frame, text="Wählen…", command=choose_csv)
+    choose_csv_button = ui.Button(csv_frame, text="WÃ¤hlenâ€¦", command=choose_csv)
     style_secondary_button(choose_csv_button, theme_key)
     choose_csv_button.pack(side="right")
 
-    photo_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    photo_frame = ui.Frame(container, bg=_theme()["bg_main"])
     photo_frame.pack(fill="x", pady=(0, 8))
-    photo_label = tk.Label(
+    photo_label = ui.Label(
         photo_frame,
         text="Foto-Ordner:",
         width=12,
@@ -325,8 +330,8 @@ def ask_data_source_dialog(recent_store):
         fg=_theme()["fg_primary"],
     )
     photo_label.pack(side="left")
-    photo_name_var = tk.StringVar(value="(nicht gewählt)")
-    photo_name_label = tk.Label(
+    photo_name_var = ui.StringVar(value="(nicht gewÃ¤hlt)")
+    photo_name_label = ui.Label(
         photo_frame,
         textvariable=photo_name_var,
         width=34,
@@ -339,15 +344,15 @@ def ask_data_source_dialog(recent_store):
     def _set_photo_label():
         folders = result["photo_folders"]
         if not folders:
-            photo_name_var.set("(nicht gewählt)")
+            photo_name_var.set("(nicht gewÃ¤hlt)")
             return
         if len(folders) == 1:
             folder = folders[0]
             photo_name_var.set(os.path.basename(folder.rstrip("\\/")) or folder)
             return
-        photo_name_var.set(f"{len(folders)} Ordner ausgewählt")
+        photo_name_var.set(f"{len(folders)} Ordner ausgewÃ¤hlt")
 
-    photo_selected_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    photo_selected_frame = ui.Frame(container, bg=_theme()["bg_main"])
     photo_selected_frame.pack(fill="x", pady=(0, 8))
 
     def _remove_photo_folder(path):
@@ -365,17 +370,17 @@ def ask_data_source_dialog(recent_store):
             child.destroy()
 
         for folder in result["photo_folders"]:
-            row = tk.Frame(photo_selected_frame, bg=_theme()["bg_main"])
+            row = ui.Frame(photo_selected_frame, bg=_theme()["bg_main"])
             row.pack(fill="x", pady=(0, 2))
             label = os.path.basename(folder.rstrip("\\/")) or folder
-            tk.Label(
+            ui.Label(
                 row,
-                text=f"• {label}",
+                text=f"â€¢ {label}",
                 anchor="w",
                 bg=_theme()["bg_main"],
                 fg=_theme()["fg_muted"],
             ).pack(side="left", fill="x", expand=True)
-            remove_button = tk.Button(
+            remove_button = ui.Button(
                 row,
                 text="X",
                 width=2,
@@ -385,7 +390,7 @@ def ask_data_source_dialog(recent_store):
             remove_button.pack(side="right")
 
     def add_photo_folder():
-        dialog_kwargs = {"title": "Foto-Ordner auswählen"}
+        dialog_kwargs = {"title": "Foto-Ordner auswÃ¤hlen"}
         initial_photo_dir = recent_store.get_last_dialog_dir("photo_source")
         if initial_photo_dir:
             dialog_kwargs["initialdir"] = initial_photo_dir
@@ -408,13 +413,13 @@ def ask_data_source_dialog(recent_store):
         _set_photo_label()
         _render_photo_selected_items()
 
-    clear_photos_button = tk.Button(
+    clear_photos_button = ui.Button(
         photo_frame, text="Leeren", command=clear_photo_folders
     )
     style_secondary_button(clear_photos_button, theme_key)
     clear_photos_button.pack(side="right")
-    add_photo_button = tk.Button(
-        photo_frame, text="Hinzufügen…", command=add_photo_folder
+    add_photo_button = ui.Button(
+        photo_frame, text="HinzufÃ¼genâ€¦", command=add_photo_folder
     )
     style_secondary_button(add_photo_button, theme_key)
     add_photo_button.pack(side="right", padx=(0, 6))
@@ -423,7 +428,7 @@ def ask_data_source_dialog(recent_store):
         if not result["csv_paths"] and not result["photo_folders"]:
             messagebox.showwarning(
                 "Hinweis",
-                "Bitte mindestens eine CSV-Datei oder einen Foto-Ordner auswählen.",
+                "Bitte mindestens eine CSV-Datei oder einen Foto-Ordner auswÃ¤hlen.",
             )
             return False
         return True
@@ -517,12 +522,12 @@ def ask_data_source_dialog(recent_store):
             _set_photo_label()
             _render_photo_selected_items()
 
-    button_frame = tk.Frame(container, bg=_theme()["bg_main"])
+    button_frame = ui.Frame(container, bg=_theme()["bg_main"])
     button_frame.pack(fill="x", pady=(2, 0))
-    start_button = tk.Button(button_frame, text="Start", command=on_start, width=12)
+    start_button = ui.Button(button_frame, text="Start", command=on_start, width=12)
     style_primary_button(start_button, theme_key)
     start_button.pack(side="left")
-    cancel_button = tk.Button(
+    cancel_button = ui.Button(
         button_frame, text="Abbrechen", command=on_cancel, width=12
     )
     style_secondary_button(cancel_button, theme_key)
@@ -559,7 +564,7 @@ def ask_data_source_dialog(recent_store):
         _render_csv_selected_items()
         _render_photo_selected_items()
 
-    theme_var = tk.StringVar(value=theme_key)
+    theme_var = ui.StringVar(value=theme_key)
 
     def _on_theme_changed():
         nonlocal theme_key
@@ -644,13 +649,13 @@ def _build_start_menu(
     debug_show_paths_var,
     on_debug_options_changed,
 ):
-    menu_bar = tk.Menu(dialog)
-    file_menu = tk.Menu(menu_bar, tearoff=0)
-    view_menu = tk.Menu(menu_bar, tearoff=0)
-    learning_menu = tk.Menu(menu_bar, tearoff=0)
-    debug_menu = tk.Menu(menu_bar, tearoff=0)
+    menu_bar = ui.Menu(dialog)
+    file_menu = ui.Menu(menu_bar, tearoff=0)
+    view_menu = ui.Menu(menu_bar, tearoff=0)
+    learning_menu = ui.Menu(menu_bar, tearoff=0)
+    debug_menu = ui.Menu(menu_bar, tearoff=0)
 
-    csv_menu = tk.Menu(file_menu, tearoff=0)
+    csv_menu = ui.Menu(file_menu, tearoff=0)
     _populate_recent_simple_menu(
         csv_menu,
         recent_data.get("csv", []),
@@ -660,7 +665,7 @@ def _build_start_menu(
         ),
     )
 
-    photo_menu = tk.Menu(file_menu, tearoff=0)
+    photo_menu = ui.Menu(file_menu, tearoff=0)
     _populate_recent_simple_menu(
         photo_menu,
         recent_data.get("photos", []),
@@ -671,7 +676,7 @@ def _build_start_menu(
         ),
     )
 
-    combined_menu = tk.Menu(file_menu, tearoff=0)
+    combined_menu = ui.Menu(file_menu, tearoff=0)
     _populate_recent_combined_menu(
         combined_menu, recent_data.get("combined", []), on_pick_recent
     )
@@ -679,7 +684,7 @@ def _build_start_menu(
     file_menu.add_cascade(label="Letzte CSV-Dateien", menu=csv_menu)
     file_menu.add_cascade(label="Letzte Fotoordner", menu=photo_menu)
     file_menu.add_cascade(label="Letzte Kombinationen", menu=combined_menu)
-    file_menu.add_command(label="Schließen", command=dialog.quit)
+    file_menu.add_command(label="SchlieÃŸen", command=dialog.quit)
 
     menu_bar.add_cascade(label="Datei", menu=file_menu, underline=0)
     populate_theme_menu(view_menu, theme_var, on_theme_changed)
@@ -718,7 +723,7 @@ def _build_start_menu(
 
 
 def _populate_recent_simple_menu(menu, entries, label_fn, command_fn):
-    """Befüllt ein Untermenü mit einfachen Path-Einträgen oder '(keine)'."""
+    """BefÃ¼llt ein UntermenÃ¼ mit einfachen Path-EintrÃ¤gen oder '(keine)'."""
 
     valid_entries = [entry for entry in entries if isinstance(entry, str)]
     if not valid_entries:
@@ -732,7 +737,7 @@ def _populate_recent_simple_menu(menu, entries, label_fn, command_fn):
 
 
 def _populate_recent_combined_menu(menu, entries, on_pick_recent):
-    """Befüllt das Kombi-Untermenü aus gespeicherten CSV+Foto-Paaren."""
+    """BefÃ¼llt das Kombi-UntermenÃ¼ aus gespeicherten CSV+Foto-Paaren."""
 
     added = 0
     for entry in entries or []:
@@ -764,3 +769,4 @@ def _center_dialog(dialog):
     x_pos = max(0, int((screen_width - window_width) / 2))
     y_pos = max(0, int((screen_height - window_height) / 3))
     dialog.geometry(f"+{x_pos}+{y_pos}")
+

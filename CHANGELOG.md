@@ -17,6 +17,7 @@ The format is based on Keep a Changelog.
 - Level selection and learning menu builders now use shared `bw_gui.runtime.ui` aliases (`app/ui/level_dialog.py`, `app/ui/learning_menu.py`) instead of direct `tkinter` imports.
 - Main quiz UI wiring now uses shared `bw_gui.runtime` aliases (`ui`, `widgets`) in `app/ui/ui.py` instead of direct `tkinter` / `ttk` imports.
 - Shared shell setup now uses `bw_gui.runtime.ui` in `bw_libs/app_shell.py` instead of direct `tkinter` imports.
+- Startup dialog UI construction now uses shared `bw_gui.runtime.ui` aliases in `app/ui/startup_dialog.py` instead of direct `tkinter` imports.
 - Startup and source-selection dialogs now use shared `bw_gui.dialogs` services, reducing direct tkinter dialog coupling.
 - Pilot integration for the shared GUI core started: Namenfit now resolves keybinding, popup, and HSM contracts through the shared `bw-gui` core (via submodule bridge).
 - Test discovery is now limited to repository tests (`pytest.ini`) so submodule test suites are excluded from normal Namenfit test runs.
