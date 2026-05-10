@@ -10,6 +10,15 @@ from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 ensure_bw_gui_on_path()
 from bw_gui.runtime import ui, widgets
 
+try:
+    from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar
+    from bw_gui.menu import MenuDefinition as SharedMenuDefinition
+    from bw_gui.menu import MenuItem as SharedMenuItem
+except ModuleNotFoundError:
+    SharedCustomMenuBar = None
+    SharedMenuDefinition = None
+    SharedMenuItem = None
+
 from time import perf_counter
 from PIL import Image, ImageTk
 
@@ -60,7 +69,15 @@ from bw_libs.ui_contract.hsm import (
 )
 from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
 from .ui_intents import UiIntent
-from ..core.learning_profiles import CUSTOM_PROFILE
+from ..core.learning_profiles import (
+    CUSTOM_PROFILE,
+    FEEDBACK_STYLE_OPTIONS,
+    LEARNING_PROFILE_ORDER,
+    LEARNING_PROFILES,
+    MIN_RETRIEVAL_OPTIONS,
+    SLOW_CORRECT_THRESHOLD_OPTIONS,
+)
+from ..core.review_scheduler import REVIEW_PROFILES
 from ..app_info import APP_INFO
 from bw_libs.app_shell import AppShellConfig, TkinterAppShell
 from .ui_theme import (
@@ -189,6 +206,7 @@ class QuizApp:
         self._shortcut_runtime_debug_context_var = None
         self._shortcut_runtime_debug_summary_var = None
         self._shortcut_runtime_debug_offline_var = None
+        self._shared_menu_bar = None
 
         # Sequentielle Phasen-Logik
         self.current_phase = PHASE_GROUP
@@ -234,6 +252,268 @@ class QuizApp:
         self.sound_enabled_var = ui.BooleanVar(value=self.sound_enabled)
         self.sound_volume_var = ui.IntVar(value=self.sound_volume)
         self.level2_group_gate_var = ui.BooleanVar(value=self.level2_require_group_before_neighbors)
+
+        if SharedCustomMenuBar is None or SharedMenuDefinition is None or SharedMenuItem is None:
+            self._build_native_menu()
+            return
+
+        if self._shared_menu_bar is not None:
+            self._shared_menu_bar.destroy()
+
+        definitions = (
+            SharedMenuDefinition(key="ansicht", label="Ansicht", alt="a", items_provider=self._menu_items_view),
+            SharedMenuDefinition(key="lernen", label="Lernen", alt="l", items_provider=self._menu_items_learning),
+            SharedMenuDefinition(key="debug", label="Debug", alt="d", items_provider=self._menu_items_debug),
+            SharedMenuDefinition(key="ton", label="Ton", alt="t", items_provider=self._menu_items_sound),
+            SharedMenuDefinition(key="sitzplan", label="Sitzplan", alt="s", items_provider=self._menu_items_seat),
+        )
+
+        self._shared_menu_bar = SharedCustomMenuBar(
+            self.root,
+            definitions,
+            theme_key=self.theme_var.get(),
+        )
+        self._shared_menu_bar.build()
+        self.root.config(menu="")
+
+    def _set_menu_var(self, tk_var, value, callback=None):
+        """Set a menu-backed Tk variable and run callback if configured."""
+
+        if tk_var.get() != value:
+            tk_var.set(value)
+        if callable(callback):
+            callback()
+
+    def _toggle_menu_bool(self, tk_var, callback=None):
+        """Toggle a bool variable from shared menu rows."""
+
+        tk_var.set(not bool(tk_var.get()))
+        if callable(callback):
+            callback()
+
+    def _set_theme_from_menu(self, theme_key):
+        """Apply one theme selected from shared menu radio rows."""
+
+        self.theme_var.set(theme_key)
+        self._on_theme_changed()
+
+    def _menu_items_view(self):
+        theme_items = tuple(
+            SharedMenuItem(
+                type="radio",
+                label=THEMES[theme_key].get("label", theme_key),
+                checked=(self.theme_var.get() == theme_key),
+                command=lambda key=theme_key: self._set_theme_from_menu(key),
+            )
+            for theme_key in THEME_ORDER
+        )
+        return (
+            SharedMenuItem(type="submenu", label="Theme", items=theme_items),
+        )
+
+    def _menu_items_learning(self):
+        items: list[SharedMenuItem] = []
+
+        preset_items: list[SharedMenuItem] = []
+        for profile_key in LEARNING_PROFILE_ORDER:
+            profile = LEARNING_PROFILES.get(profile_key)
+            if not profile:
+                continue
+            preset_items.append(
+                SharedMenuItem(
+                    type="radio",
+                    label=str(profile.get("label", profile_key)),
+                    checked=(self.learning_profile_var.get() == profile_key),
+                    command=lambda key=profile_key: self._set_menu_var(
+                        self.learning_profile_var,
+                        key,
+                        self._on_learning_profile_changed,
+                    ),
+                )
+            )
+        preset_items.append(SharedMenuItem(type="separator"))
+        preset_items.append(
+            SharedMenuItem(
+                type="radio",
+                label="Individuell (manuell)",
+                checked=(self.learning_profile_var.get() == CUSTOM_PROFILE),
+                command=lambda: self._set_menu_var(
+                    self.learning_profile_var,
+                    CUSTOM_PROFILE,
+                    self._on_learning_profile_changed,
+                ),
+            )
+        )
+        items.append(SharedMenuItem(type="submenu", label="Lernprofil", items=tuple(preset_items)))
+        items.append(SharedMenuItem(type="separator"))
+
+        for profile_key in ("leicht", "mittel", "stark"):
+            profile = REVIEW_PROFILES.get(profile_key)
+            if not profile:
+                continue
+            items.append(
+                SharedMenuItem(
+                    type="radio",
+                    label=f"Wiederholungsprofil: {profile['label']}",
+                    checked=(self.review_profile_var.get() == profile_key),
+                    command=lambda key=profile_key: self._set_menu_var(
+                        self.review_profile_var,
+                        key,
+                        self._on_review_profile_changed,
+                    ),
+                )
+            )
+
+        items.append(SharedMenuItem(type="separator"))
+        items.append(
+            SharedMenuItem(
+                type="radio",
+                label="Gleicher Name darf direkt wiederkommen",
+                checked=bool(self.allow_immediate_repeat_var.get()),
+                command=lambda: self._toggle_menu_bool(self.allow_immediate_repeat_var, self._on_learning_toggles_changed),
+            )
+        )
+        items.append(
+            SharedMenuItem(
+                type="radio",
+                label="Fehler-Relearn priorisieren",
+                checked=bool(self.prioritize_urgent_var.get()),
+                command=lambda: self._toggle_menu_bool(self.prioritize_urgent_var, self._on_learning_toggles_changed),
+            )
+        )
+        items.append(
+            SharedMenuItem(
+                type="radio",
+                label="Neue Fotos trotz faelliger Wiederholungen beimischen",
+                checked=bool(self.mix_new_cards_var.get()),
+                command=lambda: self._toggle_menu_bool(self.mix_new_cards_var, self._on_learning_toggles_changed),
+            )
+        )
+
+        items.append(SharedMenuItem(type="separator"))
+
+        min_delay_items = tuple(
+            SharedMenuItem(
+                type="radio",
+                label=("Mindest-Denkzeit: aus" if seconds == 0 else f"Mindest-Denkzeit: {seconds}s"),
+                checked=(int(self.min_retrieval_seconds_var.get()) == int(seconds)),
+                command=lambda secs=seconds: self._set_menu_var(
+                    self.min_retrieval_seconds_var,
+                    int(secs),
+                    self._on_min_retrieval_changed,
+                ),
+            )
+            for seconds in MIN_RETRIEVAL_OPTIONS
+        )
+        items.append(SharedMenuItem(type="submenu", label="Abrufaufwand", items=min_delay_items))
+
+        items.append(
+            SharedMenuItem(
+                type="radio",
+                label="Langsame richtige Antworten frueher wiederholen (laengenfair)",
+                checked=bool(self.revisit_slow_correct_var.get()),
+                command=lambda: self._toggle_menu_bool(self.revisit_slow_correct_var, self._on_learning_toggles_changed),
+            )
+        )
+
+        slow_threshold_items = tuple(
+            SharedMenuItem(
+                type="radio",
+                label=f"Basis-Schwelle (ca. 6 Buchstaben): >= {seconds}s",
+                checked=(int(self.slow_correct_threshold_var.get()) == int(seconds)),
+                command=lambda secs=seconds: self._set_menu_var(
+                    self.slow_correct_threshold_var,
+                    int(secs),
+                    self._on_slow_correct_threshold_changed,
+                ),
+            )
+            for seconds in SLOW_CORRECT_THRESHOLD_OPTIONS
+        )
+        items.append(SharedMenuItem(type="submenu", label="Langsam-richtig-Schwelle (Basis)", items=slow_threshold_items))
+
+        feedback_items: list[SharedMenuItem] = []
+        for style_key in FEEDBACK_STYLE_OPTIONS:
+            label = {
+                "sarkastisch": "Feedback: Sarkastisch",
+                "ermutigend": "Feedback: Ermutigend",
+                "neutral": "Feedback: Neutral",
+            }.get(style_key, style_key)
+            feedback_items.append(
+                SharedMenuItem(
+                    type="radio",
+                    label=label,
+                    checked=(self.feedback_style_var.get() == style_key),
+                    command=lambda key=style_key: self._set_menu_var(
+                        self.feedback_style_var,
+                        key,
+                        self._on_feedback_style_changed,
+                    ),
+                )
+            )
+        items.append(SharedMenuItem(type="submenu", label="Feedbackstil", items=tuple(feedback_items)))
+
+        return tuple(items)
+
+    def _menu_items_debug(self):
+        return (
+            SharedMenuItem(
+                type="radio",
+                label="Debug-Panel anzeigen",
+                checked=bool(self.debug_show_panel_var.get()),
+                command=lambda: self._toggle_menu_bool(self.debug_show_panel_var, self._on_debug_options_changed),
+            ),
+            SharedMenuItem(
+                type="radio",
+                label="Dateipfade im Debug-Panel",
+                checked=bool(self.debug_show_paths_var.get()),
+                command=lambda: self._toggle_menu_bool(self.debug_show_paths_var, self._on_debug_options_changed),
+            ),
+            SharedMenuItem(type="separator"),
+            SharedMenuItem(
+                type="command",
+                label="Shortcut-Runtime-Debug anzeigen (Strg+Shift+D)",
+                command=self._open_shortcut_runtime_debug_dialog,
+            ),
+            SharedMenuItem(
+                type="command",
+                label="Offline simulieren umschalten (Strg+Shift+O)",
+                command=self._toggle_shortcut_runtime_offline,
+            ),
+        )
+
+    def _menu_items_sound(self):
+        volume_items = tuple(
+            SharedMenuItem(
+                type="radio",
+                label=f"Lautstaerke {label}",
+                checked=(int(self.sound_volume_var.get()) == int(value)),
+                command=lambda level=value: self._set_menu_var(self.sound_volume_var, int(level), self._on_sound_volume_changed),
+            )
+            for value, label in ((0, "0%"), (25, "25%"), (50, "50%"), (75, "75%"), (100, "100%"))
+        )
+        return (
+            SharedMenuItem(
+                type="radio",
+                label="Sound aktiv",
+                checked=bool(self.sound_enabled_var.get()),
+                command=lambda: self._toggle_menu_bool(self.sound_enabled_var, self._on_sound_enabled_changed),
+            ),
+            SharedMenuItem(type="separator"),
+            SharedMenuItem(type="submenu", label="Lautstaerke", items=volume_items),
+        )
+
+    def _menu_items_seat(self):
+        return (
+            SharedMenuItem(
+                type="radio",
+                label="Level 2: Nachbarfragen nur bei korrekter Tischgruppe",
+                checked=bool(self.level2_group_gate_var.get()),
+                command=lambda: self._toggle_menu_bool(self.level2_group_gate_var, self._on_level2_group_gate_changed),
+            ),
+        )
+
+    def _build_native_menu(self):
+        """Fallback-Menü für Umgebungen ohne Shared CustomMenuBar."""
 
         menu_bar = ui.Menu(self.root)
         view_menu = ui.Menu(menu_bar, tearoff=0)
@@ -317,6 +597,8 @@ class QuizApp:
         self.progress_store.set_theme_key(self.theme_key)
         if callable(self.on_theme_changed_callback):
             self.on_theme_changed_callback(self.theme_key)
+        if self._shared_menu_bar is not None:
+            self._shared_menu_bar.refresh_theme(self.theme_key)
         self._apply_theme()
 
     def _on_review_profile_changed(self):

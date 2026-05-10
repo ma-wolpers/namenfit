@@ -18,6 +18,8 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Shared-Menueleiste integriert: `app/ui/ui.py` baut das Hauptmenue jetzt primaer ueber `bw_gui.menu.CustomMenuBar` mit provider-basierten Menuedefinitionen (Ansicht/Lernen/Debug/Ton/Sitzplan) und behaelt einen nativen `ui.Menu`-Fallback fuer fehlende Shared-Menu-Module.
+- Menueaktionen fuer Lern-/Debug-/Ton-/Sitzplan-Optionen wurden auf deklarative Shared-Menu-Items abgebildet (inkl. checked-Rows fuer bool/int-Optionen), sodass Runtime-Status beim Oeffnen dynamisch aus den zentralen Tk-Variablen gelesen wird.
 - Shared-Tooltip-Polish uebernommen: `bw_gui.widgets.HoverTooltip` nutzt jetzt verzoegertes Anzeigen, Theme-Ableitung aus dem aktiven Fensterkontext sowie Bildschirm-Clamping fuer stabile Hover-Overlays.
 - Shared-Theme-Feinschliff uebernommen: gemeinsame Settings-/Sidebar-Stile und verfeinerte Scrollbar-Kontraste kommen jetzt aus dem aktualisierten `bw-gui`-Submodule-Stand.
 - Tk/ttk-Runtime-Pilotmigration erweitert: `app/ui/ui.py` nutzt jetzt zentrale Runtime-Aliases aus `bw_gui.runtime` (`ui`/`widgets`) statt direkter `tkinter`-/`ttk`-Imports.
