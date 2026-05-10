@@ -18,6 +18,8 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Hover-Contract in der Quiz-UI erweitert: `app/ui/ui.py` bindet zentrale Action-Buttons (`Aufloesen`, `Ups, vertippt`, `Weiter`, `Level wechseln`) an `SharedHoverTooltip` mit einheitlicher Shared-Shortcut-Formatierung.
+- Theme-Sync fuer Hover-Overlays gehaertet: bei Themewechsel aktualisiert `_on_theme_changed` jetzt die `theme_key` aller aktiven Shared-Tooltips, damit Overlays visuell konsistent bleiben.
 - Shared-Settings-Dialog integriert: `app/ui/ui.py` oeffnet jetzt einen tab-basierten `bw_gui.dialogs.open_tabbed_settings_dialog`-Flow (`Ansicht -> Einstellungen...`) fuer Theme-, Lern-, Debug-, Ton- und Sitzplan-Optionen.
 - Runtime-Settings-Mapping verdrahtet: Shared-Dialog-Payload wird beim Commit auf die bestehenden Tk-Variablen/Handler (`_on_theme_changed`, Lern-/Debug-/Ton-Callbacks) zurueckgefuehrt, sodass Persistenz und Nebenwirkungen konsistent mit den bisherigen Menueaktionen bleiben.
 - Shared-Menueleiste integriert: `app/ui/ui.py` baut das Hauptmenue jetzt primaer ueber `bw_gui.menu.CustomMenuBar` mit provider-basierten Menuedefinitionen (Ansicht/Lernen/Debug/Ton/Sitzplan) und behaelt einen nativen `ui.Menu`-Fallback fuer fehlende Shared-Menu-Module.

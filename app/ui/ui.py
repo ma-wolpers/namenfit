@@ -30,6 +30,13 @@ except ModuleNotFoundError:
     SharedSettingsSectionSpec = None
     open_shared_tabbed_settings_dialog = None
 
+try:
+    from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
+    from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
+except ModuleNotFoundError:
+    compose_shared_hover_text = None
+    SharedHoverTooltip = None
+
 from time import perf_counter
 from PIL import Image, ImageTk
 
@@ -218,6 +225,7 @@ class QuizApp:
         self._shortcut_runtime_debug_summary_var = None
         self._shortcut_runtime_debug_offline_var = None
         self._shared_menu_bar = None
+        self._hover_tooltips = []
 
         # Sequentielle Phasen-Logik
         self.current_phase = PHASE_GROUP
@@ -307,6 +315,23 @@ class QuizApp:
 
         self.theme_var.set(theme_key)
         self._on_theme_changed()
+
+    def _attach_hover_help(self, widget, *, label, shortcut=None):
+        """Attach shared tooltip text for action buttons and shortcuts."""
+
+        if SharedHoverTooltip is None:
+            return
+
+        shortcut_text = (shortcut or "").strip()
+        if compose_shared_hover_text is not None:
+            text = compose_shared_hover_text(label, shortcut_text)
+        elif shortcut_text:
+            text = f"{label}\nShortcut: {shortcut_text}"
+        else:
+            text = label
+
+        tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)
+        self._hover_tooltips.append(tooltip)
 
     def _menu_items_view(self):
         theme_items = tuple(
@@ -848,6 +873,11 @@ class QuizApp:
             self.on_theme_changed_callback(self.theme_key)
         if self._shared_menu_bar is not None:
             self._shared_menu_bar.refresh_theme(self.theme_key)
+        for tooltip in self._hover_tooltips:
+            try:
+                setattr(tooltip, "theme_key", self.theme_key)
+            except Exception:
+                continue
         self._apply_theme()
 
     def _on_review_profile_changed(self):
@@ -1041,6 +1071,7 @@ class QuizApp:
         self.solve_button = ui.Button(self.root, text="Auflösen", command=self.solve)
         style_primary_button(self.solve_button, self.theme_key)
         self.solve_button.pack(pady=(2, 2))
+        self._attach_hover_help(self.solve_button, label="Aktuelle Aufgabe aufloesen", shortcut="Enter")
 
         self.typo_button = ui.Button(
             self.root,
@@ -1050,11 +1081,13 @@ class QuizApp:
         style_secondary_button(self.typo_button, self.theme_key)
         self.typo_button.pack(pady=(0, 4))
         self.typo_button.pack_forget()
+        self._attach_hover_help(self.typo_button, label="Vertipper markieren", shortcut="Backspace")
 
         self.next_button = ui.Button(self.root, text="Weiter", command=self.next_person)
         style_primary_button(self.next_button, self.theme_key)
         self.next_button.pack(pady=5)
         self.next_button.pack_forget()
+        self._attach_hover_help(self.next_button, label="Naechste Person laden", shortcut="Enter")
 
         self.switch_level_button = ui.Button(
             self.root,
@@ -1063,6 +1096,7 @@ class QuizApp:
         )
         style_secondary_button(self.switch_level_button, self.theme_key)
         self.switch_level_button.pack(pady=(2, 6))
+        self._attach_hover_help(self.switch_level_button, label="Trainingslevel wechseln", shortcut=None)
 
         self.stats_label = ui.Label(self.root, text="", font=("Arial", 10), fg=FG_MUTED, bg=BG_MAIN)
         self.stats_label.pack(pady=(0, 8))
