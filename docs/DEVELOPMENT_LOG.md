@@ -18,6 +18,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Nicht-Theme-Sonderpfade entfernt: `app/ui/ui.py` nutzt Shared-Menueleiste, Shared-Hover-Formatter und Shared-Settings-Dialog jetzt ohne nativen Fallback-Branch (`_build_native_menu`) oder optionale Modulguards.
 - Theme-Sonderpfade entfernt: `app/ui/ui_theme.py` laedt die zentrale `bw_gui.theming`-Registry jetzt verbindlich und ohne optionalen Fallback-Branch auf fehlende Shared-Theme-Module.
 - Welle-13-Theme-Pilot erweitert: `app/ui/ui_theme.py` merged die zentrale `bw_gui.theming`-Registry (`THEME_ORDER` + `get_theme`) in die lokale Namenfit-Theme-Liste und mappt Shared-Tokens auf den bestehenden Namenfit-Theme-Contract.
 - Hover-Contract weitergezogen: auch die Runtime-Debug-Toolbar in `app/ui/ui.py` (Offline-Simulation + Aktualisieren) zeigt jetzt Shared-Tooltip-Hinweise statt unkommentierter Nebenaktionen.

@@ -9,33 +9,15 @@ from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
 from bw_gui.runtime import ui, widgets
-
-try:
-    from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar
-    from bw_gui.menu import MenuDefinition as SharedMenuDefinition
-    from bw_gui.menu import MenuItem as SharedMenuItem
-except ModuleNotFoundError:
-    SharedCustomMenuBar = None
-    SharedMenuDefinition = None
-    SharedMenuItem = None
-
-try:
-    from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
-    from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
-    from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
-    from bw_gui.dialogs import open_tabbed_settings_dialog as open_shared_tabbed_settings_dialog
-except ModuleNotFoundError:
-    SharedSettingsDialogSpec = None
-    SharedSettingsFieldSpec = None
-    SharedSettingsSectionSpec = None
-    open_shared_tabbed_settings_dialog = None
-
-try:
-    from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
-    from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
-except ModuleNotFoundError:
-    compose_shared_hover_text = None
-    SharedHoverTooltip = None
+from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
+from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
+from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
+from bw_gui.dialogs import open_tabbed_settings_dialog as open_shared_tabbed_settings_dialog
+from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar
+from bw_gui.menu import MenuDefinition as SharedMenuDefinition
+from bw_gui.menu import MenuItem as SharedMenuItem
+from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
+from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
 
 from time import perf_counter
 from PIL import Image, ImageTk
@@ -70,7 +52,6 @@ from ..core.stats_format import (
     stats_text_level1,
     stats_text_level2,
 )
-from .learning_menu import populate_learning_menu
 from bw_libs.ui_contract.keybinding import (
     UI_MODE_DIALOG,
     UI_MODE_EDITOR,
@@ -108,7 +89,6 @@ from .ui_theme import (
     apply_window_theme,
     get_theme,
     normalize_theme_key,
-    populate_theme_menu,
     style_entry,
     style_primary_button,
     style_secondary_button,
@@ -272,10 +252,6 @@ class QuizApp:
         self.sound_volume_var = ui.IntVar(value=self.sound_volume)
         self.level2_group_gate_var = ui.BooleanVar(value=self.level2_require_group_before_neighbors)
 
-        if SharedCustomMenuBar is None or SharedMenuDefinition is None or SharedMenuItem is None:
-            self._build_native_menu()
-            return
-
         if self._shared_menu_bar is not None:
             self._shared_menu_bar.destroy()
 
@@ -319,16 +295,8 @@ class QuizApp:
     def _attach_hover_help(self, widget, *, label, shortcut=None):
         """Attach shared tooltip text for action buttons and shortcuts."""
 
-        if SharedHoverTooltip is None:
-            return
-
         shortcut_text = (shortcut or "").strip()
-        if compose_shared_hover_text is not None:
-            text = compose_shared_hover_text(label, shortcut_text)
-        elif shortcut_text:
-            text = f"{label}\nShortcut: {shortcut_text}"
-        else:
-            text = label
+        text = compose_shared_hover_text(label, shortcut_text)
 
         tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)
         self._hover_tooltips.append(tooltip)
@@ -553,9 +521,6 @@ class QuizApp:
     def _build_settings_dialog_spec(self):
         """Build shared tabbed settings schema for Namenfit runtime options."""
 
-        if SharedSettingsDialogSpec is None or SharedSettingsSectionSpec is None or SharedSettingsFieldSpec is None:
-            return None
-
         review_values = tuple(key for key in ("leicht", "mittel", "stark") if key in REVIEW_PROFILES) or ("mittel",)
         learning_profile_values = tuple(dict.fromkeys([*LEARNING_PROFILE_ORDER, CUSTOM_PROFILE]))
         min_retrieval_values = tuple(int(value) for value in MIN_RETRIEVAL_OPTIONS)
@@ -768,12 +733,7 @@ class QuizApp:
     def _open_settings_dialog(self):
         """Open the shared tabbed settings dialog for runtime learning/debug/theme options."""
 
-        if open_shared_tabbed_settings_dialog is None:
-            return
-
         spec = self._build_settings_dialog_spec()
-        if spec is None:
-            return
 
         open_shared_tabbed_settings_dialog(
             self.root,
@@ -783,88 +743,6 @@ class QuizApp:
             initial_values=self._build_settings_dialog_values(),
             on_commit=self._apply_settings_dialog_payload,
         )
-
-    def _build_native_menu(self):
-        """Fallback-Menü für Umgebungen ohne Shared CustomMenuBar."""
-
-        menu_bar = ui.Menu(self.root)
-        view_menu = ui.Menu(menu_bar, tearoff=0)
-        learning_menu = ui.Menu(menu_bar, tearoff=0)
-        debug_menu = ui.Menu(menu_bar, tearoff=0)
-        sound_menu = ui.Menu(menu_bar, tearoff=0)
-        seat_menu = ui.Menu(menu_bar, tearoff=0)
-
-        populate_theme_menu(view_menu, self.theme_var, self._on_theme_changed)
-        view_menu.add_separator()
-        view_menu.add_command(label="Einstellungen...", command=self._open_settings_dialog)
-
-        populate_learning_menu(
-            learning_menu,
-            review_profile_var=self.review_profile_var,
-            allow_immediate_repeat_var=self.allow_immediate_repeat_var,
-            prioritize_urgent_var=self.prioritize_urgent_var,
-            mix_new_cards_var=self.mix_new_cards_var,
-            min_retrieval_seconds_var=self.min_retrieval_seconds_var,
-            revisit_slow_correct_var=self.revisit_slow_correct_var,
-            slow_correct_threshold_var=self.slow_correct_threshold_var,
-            feedback_style_var=self.feedback_style_var,
-            on_review_profile_changed=self._on_review_profile_changed,
-            on_learning_toggles_changed=self._on_learning_toggles_changed,
-            on_min_retrieval_changed=self._on_min_retrieval_changed,
-            on_slow_correct_threshold_changed=self._on_slow_correct_threshold_changed,
-            on_feedback_style_changed=self._on_feedback_style_changed,
-            learning_profile_var=self.learning_profile_var,
-            on_learning_profile_changed=self._on_learning_profile_changed,
-        )
-
-        debug_menu.add_checkbutton(
-            label="Debug-Panel anzeigen",
-            variable=self.debug_show_panel_var,
-            command=self._on_debug_options_changed,
-        )
-        debug_menu.add_checkbutton(
-            label="Dateipfade im Debug-Panel",
-            variable=self.debug_show_paths_var,
-            command=self._on_debug_options_changed,
-        )
-        debug_menu.add_separator()
-        debug_menu.add_command(
-            label="Shortcut-Runtime-Debug anzeigen",
-            accelerator="Strg+Shift+D",
-            command=self._open_shortcut_runtime_debug_dialog,
-        )
-        debug_menu.add_command(
-            label="Offline simulieren umschalten",
-            accelerator="Strg+Shift+O",
-            command=self._toggle_shortcut_runtime_offline,
-        )
-
-        sound_menu.add_checkbutton(
-            label="Sound aktiv",
-            variable=self.sound_enabled_var,
-            command=self._on_sound_enabled_changed,
-        )
-        sound_menu.add_separator()
-        for value, label in ((0, "0%"), (25, "25%"), (50, "50%"), (75, "75%"), (100, "100%")):
-            sound_menu.add_radiobutton(
-                label=f"Lautstärke {label}",
-                variable=self.sound_volume_var,
-                value=value,
-                command=self._on_sound_volume_changed,
-            )
-
-        seat_menu.add_checkbutton(
-            label="Level 2: Nachbarfragen nur bei korrekter Tischgruppe",
-            variable=self.level2_group_gate_var,
-            command=self._on_level2_group_gate_changed,
-        )
-
-        menu_bar.add_cascade(label="Ansicht", menu=view_menu, underline=0)
-        menu_bar.add_cascade(label="Lernen", menu=learning_menu, underline=0)
-        menu_bar.add_cascade(label="Debug", menu=debug_menu, underline=0)
-        menu_bar.add_cascade(label="Ton", menu=sound_menu, underline=0)
-        menu_bar.add_cascade(label="Sitzplan", menu=seat_menu, underline=0)
-        self.root.config(menu=menu_bar)
 
     def _on_theme_changed(self):
         self.theme_key = normalize_theme_key(self.theme_var.get())

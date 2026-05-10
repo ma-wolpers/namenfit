@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Shared UI fallback branches were removed from `app/ui/ui.py`: menu rendering, hover help formatting, and shared tabbed settings now run without native/optional fallback paths.
 - Theme special paths were removed from `app/ui/ui_theme.py`: Namenfit now requires the shared `bw_gui.theming` registry path directly and no longer keeps optional fallback branches for missing shared theming.
 - Namenfit theme availability now also includes the shared `bw_gui.theming` registry; central themes are auto-mapped into the local Namenfit theme contract without replacing existing app-native themes.
 - The runtime debug toolbar now also uses shared hover help overlays for offline simulation and refresh controls.
