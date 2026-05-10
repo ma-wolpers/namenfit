@@ -1,5 +1,17 @@
 """Zentrale Theme-Verwaltung für NamenFit."""
 
+from bw_libs.shared_gui_core import ensure_bw_gui_on_path
+
+
+ensure_bw_gui_on_path()
+
+try:
+    from bw_gui.theming import THEME_ORDER as BASE_THEME_ORDER
+    from bw_gui.theming import get_theme as get_base_theme
+except ModuleNotFoundError:
+    BASE_THEME_ORDER = ()
+    get_base_theme = None
+
 
 THEMES = {
     "slate_indigo": {
@@ -96,6 +108,54 @@ THEME_ORDER = [
     "lavender_graphite",
     "obsidian_gold",
 ]
+
+
+def _map_base_theme_to_namenfit(base: dict[str, str], fallback_key: str) -> dict[str, str]:
+    """Map shared theme contract keys to Namenfit's local theme shape."""
+
+    return {
+        "label": str(base.get("label", fallback_key)),
+        "bg_main": str(base["bg_main"]),
+        "bg_surface": str(base["bg_surface"]),
+        "fg_primary": str(base["fg_primary"]),
+        "fg_muted": str(base["fg_muted"]),
+        "accent": str(base["accent"]),
+        "accent_hover": str(base.get("accent_hover", base["accent"])),
+        "accent_soft": str(base["accent_soft"]),
+        "danger": str(base.get("danger", "#A73B3B")),
+        "success": str(base.get("success", "#2F8A4F")),
+        "error": str(base.get("error", base.get("danger", "#A73B3B"))),
+        "border": str(base["border"]),
+    }
+
+
+def _merge_base_theme_registry() -> None:
+    if not BASE_THEME_ORDER or not callable(get_base_theme):
+        return
+
+    merged_order: list[str] = []
+    seen: set[str] = set()
+
+    for theme_key in THEME_ORDER:
+        if theme_key not in seen:
+            merged_order.append(theme_key)
+            seen.add(theme_key)
+
+    for theme_key in BASE_THEME_ORDER:
+        if theme_key in seen:
+            continue
+        try:
+            base = get_base_theme(theme_key)
+        except Exception:
+            continue
+        THEMES.setdefault(theme_key, _map_base_theme_to_namenfit(base, theme_key))
+        merged_order.append(theme_key)
+        seen.add(theme_key)
+
+    THEME_ORDER[:] = merged_order
+
+
+_merge_base_theme_registry()
 
 DEFAULT_THEME = "sand_terracotta"
 
