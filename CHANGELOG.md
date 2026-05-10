@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- A new tab-based shared settings dialog is now available from the main menu (`Ansicht -> Einstellungen...`) and centralizes runtime controls for theme, learning behavior, debug options, sound, and level-2 seat-group gating.
 - Main menu rendering now uses the shared `bw_gui.menu.CustomMenuBar` with provider-based menu definitions for Ansicht/Lernen/Debug/Ton/Sitzplan, while retaining a native fallback path if shared menu modules are unavailable.
 - Hover tooltips now appear with smoother delayed behavior, pick up the active app theme automatically, and stay fully visible on-screen.
 - Shared settings/sidebar and scrollbar theming received a visual polish via the updated `bw-gui` baseline styles.

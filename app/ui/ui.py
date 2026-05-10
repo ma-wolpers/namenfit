@@ -19,6 +19,17 @@ except ModuleNotFoundError:
     SharedMenuDefinition = None
     SharedMenuItem = None
 
+try:
+    from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
+    from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
+    from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
+    from bw_gui.dialogs import open_tabbed_settings_dialog as open_shared_tabbed_settings_dialog
+except ModuleNotFoundError:
+    SharedSettingsDialogSpec = None
+    SharedSettingsFieldSpec = None
+    SharedSettingsSectionSpec = None
+    open_shared_tabbed_settings_dialog = None
+
 from time import perf_counter
 from PIL import Image, ImageTk
 
@@ -308,6 +319,8 @@ class QuizApp:
             for theme_key in THEME_ORDER
         )
         return (
+            SharedMenuItem(type="command", label="Einstellungen...", command=self._open_settings_dialog),
+            SharedMenuItem(type="separator"),
             SharedMenuItem(type="submenu", label="Theme", items=theme_items),
         )
 
@@ -512,6 +525,240 @@ class QuizApp:
             ),
         )
 
+    def _build_settings_dialog_spec(self):
+        """Build shared tabbed settings schema for Namenfit runtime options."""
+
+        if SharedSettingsDialogSpec is None or SharedSettingsSectionSpec is None or SharedSettingsFieldSpec is None:
+            return None
+
+        review_values = tuple(key for key in ("leicht", "mittel", "stark") if key in REVIEW_PROFILES) or ("mittel",)
+        learning_profile_values = tuple(dict.fromkeys([*LEARNING_PROFILE_ORDER, CUSTOM_PROFILE]))
+        min_retrieval_values = tuple(int(value) for value in MIN_RETRIEVAL_OPTIONS)
+        slow_threshold_values = tuple(int(value) for value in SLOW_CORRECT_THRESHOLD_OPTIONS)
+
+        return SharedSettingsDialogSpec(
+            sections=(
+                SharedSettingsSectionSpec(
+                    key="ansicht",
+                    label="Ansicht",
+                    fields=(
+                        SharedSettingsFieldSpec(
+                            key="theme_key",
+                            label="Theme",
+                            field_type="enum",
+                            enum_values=tuple(THEME_ORDER),
+                            default=self.theme_var.get(),
+                        ),
+                    ),
+                ),
+                SharedSettingsSectionSpec(
+                    key="lernen",
+                    label="Lernen",
+                    fields=(
+                        SharedSettingsFieldSpec(
+                            key="learning_profile",
+                            label="Lernprofil",
+                            field_type="enum",
+                            enum_values=learning_profile_values,
+                            default=self.learning_profile_var.get(),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="review_profile",
+                            label="Wiederholungsprofil",
+                            field_type="enum",
+                            enum_values=review_values,
+                            default=self.review_profile_var.get(),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="allow_immediate_repeat",
+                            label="Gleicher Name darf direkt wiederkommen",
+                            field_type="bool",
+                            default=bool(self.allow_immediate_repeat_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="prioritize_urgent",
+                            label="Fehler-Relearn priorisieren",
+                            field_type="bool",
+                            default=bool(self.prioritize_urgent_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="mix_new_cards",
+                            label="Neue Fotos trotz faelliger Wiederholungen beimischen",
+                            field_type="bool",
+                            default=bool(self.mix_new_cards_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="min_retrieval_seconds",
+                            label="Mindest-Denkzeit (Sekunden)",
+                            field_type="int",
+                            default=int(self.min_retrieval_seconds_var.get()),
+                            min_value=min(min_retrieval_values),
+                            max_value=max(min_retrieval_values),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="revisit_slow_correct",
+                            label="Langsame richtige Antworten frueher wiederholen (laengenfair)",
+                            field_type="bool",
+                            default=bool(self.revisit_slow_correct_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="slow_correct_threshold_seconds",
+                            label="Langsam-richtig-Schwelle (Sekunden)",
+                            field_type="int",
+                            default=int(self.slow_correct_threshold_var.get()),
+                            min_value=min(slow_threshold_values),
+                            max_value=max(slow_threshold_values),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="feedback_style",
+                            label="Feedbackstil",
+                            field_type="enum",
+                            enum_values=tuple(FEEDBACK_STYLE_OPTIONS),
+                            default=self.feedback_style_var.get(),
+                        ),
+                    ),
+                ),
+                SharedSettingsSectionSpec(
+                    key="debug",
+                    label="Debug",
+                    fields=(
+                        SharedSettingsFieldSpec(
+                            key="debug_show_panel",
+                            label="Debug-Panel anzeigen",
+                            field_type="bool",
+                            default=bool(self.debug_show_panel_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="debug_show_paths",
+                            label="Dateipfade im Debug-Panel",
+                            field_type="bool",
+                            default=bool(self.debug_show_paths_var.get()),
+                        ),
+                    ),
+                ),
+                SharedSettingsSectionSpec(
+                    key="ton",
+                    label="Ton",
+                    fields=(
+                        SharedSettingsFieldSpec(
+                            key="sound_enabled",
+                            label="Sound aktiv",
+                            field_type="bool",
+                            default=bool(self.sound_enabled_var.get()),
+                        ),
+                        SharedSettingsFieldSpec(
+                            key="sound_volume",
+                            label="Lautstaerke (Prozent)",
+                            field_type="int",
+                            default=int(self.sound_volume_var.get()),
+                            min_value=0,
+                            max_value=100,
+                        ),
+                    ),
+                ),
+                SharedSettingsSectionSpec(
+                    key="sitzplan",
+                    label="Sitzplan",
+                    fields=(
+                        SharedSettingsFieldSpec(
+                            key="level2_group_gate",
+                            label="Level 2: Nachbarfragen nur bei korrekter Tischgruppe",
+                            field_type="bool",
+                            default=bool(self.level2_group_gate_var.get()),
+                        ),
+                    ),
+                ),
+            )
+        )
+
+    def _build_settings_dialog_values(self):
+        """Return current runtime settings as shared-dialog payload."""
+
+        return {
+            "theme_key": self.theme_var.get(),
+            "learning_profile": self.learning_profile_var.get(),
+            "review_profile": self.review_profile_var.get(),
+            "allow_immediate_repeat": bool(self.allow_immediate_repeat_var.get()),
+            "prioritize_urgent": bool(self.prioritize_urgent_var.get()),
+            "mix_new_cards": bool(self.mix_new_cards_var.get()),
+            "min_retrieval_seconds": int(self.min_retrieval_seconds_var.get()),
+            "revisit_slow_correct": bool(self.revisit_slow_correct_var.get()),
+            "slow_correct_threshold_seconds": int(self.slow_correct_threshold_var.get()),
+            "feedback_style": self.feedback_style_var.get(),
+            "debug_show_panel": bool(self.debug_show_panel_var.get()),
+            "debug_show_paths": bool(self.debug_show_paths_var.get()),
+            "sound_enabled": bool(self.sound_enabled_var.get()),
+            "sound_volume": int(self.sound_volume_var.get()),
+            "level2_group_gate": bool(self.level2_group_gate_var.get()),
+        }
+
+    def _apply_settings_dialog_payload(self, payload):
+        """Apply committed shared-dialog values back into runtime vars/controllers."""
+
+        if not isinstance(payload, dict):
+            return
+
+        theme_key = normalize_theme_key(str(payload.get("theme_key", self.theme_var.get())))
+        self.theme_var.set(theme_key)
+        self._on_theme_changed()
+
+        learning_profile = str(payload.get("learning_profile", self.learning_profile_var.get()) or CUSTOM_PROFILE)
+        self.learning_profile_var.set(learning_profile)
+        if learning_profile != CUSTOM_PROFILE:
+            self._on_learning_profile_changed()
+
+        review_profile = str(payload.get("review_profile", self.review_profile_var.get()) or self.review_profile_var.get())
+        self.review_profile_var.set(review_profile)
+        self._on_review_profile_changed()
+
+        self.allow_immediate_repeat_var.set(bool(payload.get("allow_immediate_repeat", self.allow_immediate_repeat_var.get())))
+        self.prioritize_urgent_var.set(bool(payload.get("prioritize_urgent", self.prioritize_urgent_var.get())))
+        self.mix_new_cards_var.set(bool(payload.get("mix_new_cards", self.mix_new_cards_var.get())))
+        self.revisit_slow_correct_var.set(bool(payload.get("revisit_slow_correct", self.revisit_slow_correct_var.get())))
+        self._on_learning_toggles_changed()
+
+        self.min_retrieval_seconds_var.set(int(payload.get("min_retrieval_seconds", self.min_retrieval_seconds_var.get())))
+        self._on_min_retrieval_changed()
+
+        self.slow_correct_threshold_var.set(
+            int(payload.get("slow_correct_threshold_seconds", self.slow_correct_threshold_var.get()))
+        )
+        self._on_slow_correct_threshold_changed()
+
+        self.feedback_style_var.set(str(payload.get("feedback_style", self.feedback_style_var.get()) or self.feedback_style_var.get()))
+        self._on_feedback_style_changed()
+
+        self.debug_show_panel_var.set(bool(payload.get("debug_show_panel", self.debug_show_panel_var.get())))
+        self.debug_show_paths_var.set(bool(payload.get("debug_show_paths", self.debug_show_paths_var.get())))
+        self._on_debug_options_changed()
+
+        self.sound_enabled_var.set(bool(payload.get("sound_enabled", self.sound_enabled_var.get())))
+        self._on_sound_enabled_changed()
+        self.sound_volume_var.set(max(0, min(100, int(payload.get("sound_volume", self.sound_volume_var.get())))))
+        self._on_sound_volume_changed()
+
+        self.level2_group_gate_var.set(bool(payload.get("level2_group_gate", self.level2_group_gate_var.get())))
+        self._on_level2_group_gate_changed()
+
+    def _open_settings_dialog(self):
+        """Open the shared tabbed settings dialog for runtime learning/debug/theme options."""
+
+        if open_shared_tabbed_settings_dialog is None:
+            return
+
+        spec = self._build_settings_dialog_spec()
+        if spec is None:
+            return
+
+        open_shared_tabbed_settings_dialog(
+            self.root,
+            title="Einstellungen",
+            theme_key=self.theme_var.get(),
+            spec=spec,
+            initial_values=self._build_settings_dialog_values(),
+            on_commit=self._apply_settings_dialog_payload,
+        )
+
     def _build_native_menu(self):
         """Fallback-Menü für Umgebungen ohne Shared CustomMenuBar."""
 
@@ -523,6 +770,8 @@ class QuizApp:
         seat_menu = ui.Menu(menu_bar, tearoff=0)
 
         populate_theme_menu(view_menu, self.theme_var, self._on_theme_changed)
+        view_menu.add_separator()
+        view_menu.add_command(label="Einstellungen...", command=self._open_settings_dialog)
 
         populate_learning_menu(
             learning_menu,
