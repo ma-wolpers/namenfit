@@ -1368,13 +1368,18 @@ class QuizApp:
         toolbar = widgets.Frame(window, padding=(10, 8))
         toolbar.pack(fill="x")
         widgets.Label(toolbar, textvariable=self._shortcut_runtime_debug_context_var).pack(side="left", fill="x", expand=True)
-        widgets.Checkbutton(
+        offline_check = widgets.Checkbutton(
             toolbar,
             text="Offline simulieren",
             variable=self._shortcut_runtime_debug_offline_var,
             command=self._on_shortcut_runtime_offline_var_changed,
-        ).pack(side="left", padx=(12, 0))
-        widgets.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog).pack(side="left", padx=(8, 0))
+        )
+        offline_check.pack(side="left", padx=(12, 0))
+        self._attach_hover_help(offline_check, label="Offline-Simulation fuer Runtime-Resolver umschalten", shortcut="Ctrl+Shift+O")
+
+        refresh_button = widgets.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog)
+        refresh_button.pack(side="left", padx=(8, 0))
+        self._attach_hover_help(refresh_button, label="Shortcut-Runtime-Debug neu berechnen", shortcut=None)
 
         body = widgets.Frame(window, padding=(10, 0, 10, 8))
         body.pack(fill="both", expand=True)

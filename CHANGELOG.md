@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- The runtime debug toolbar now also uses shared hover help overlays for offline simulation and refresh controls.
 - Core quiz action buttons now use shared hover tooltips with consistent shortcut wording (solve/typo/next/level switch), and tooltip themes now update together with active app theme changes.
 - A new tab-based shared settings dialog is now available from the main menu (`Ansicht -> Einstellungen...`) and centralizes runtime controls for theme, learning behavior, debug options, sound, and level-2 seat-group gating.
 - Main menu rendering now uses the shared `bw_gui.menu.CustomMenuBar` with provider-based menu definitions for Ansicht/Lernen/Debug/Ton/Sitzplan, while retaining a native fallback path if shared menu modules are unavailable.
