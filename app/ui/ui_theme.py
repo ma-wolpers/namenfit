@@ -4,13 +4,8 @@ from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 
 ensure_bw_gui_on_path()
-
-try:
-    from bw_gui.theming import THEME_ORDER as BASE_THEME_ORDER
-    from bw_gui.theming import get_theme as get_base_theme
-except ModuleNotFoundError:
-    BASE_THEME_ORDER = ()
-    get_base_theme = None
+from bw_gui.theming import THEME_ORDER as BASE_THEME_ORDER
+from bw_gui.theming import get_theme as get_base_theme
 
 
 THEMES = {
@@ -130,9 +125,6 @@ def _map_base_theme_to_namenfit(base: dict[str, str], fallback_key: str) -> dict
 
 
 def _merge_base_theme_registry() -> None:
-    if not BASE_THEME_ORDER or not callable(get_base_theme):
-        return
-
     merged_order: list[str] = []
     seen: set[str] = set()
 
@@ -144,10 +136,7 @@ def _merge_base_theme_registry() -> None:
     for theme_key in BASE_THEME_ORDER:
         if theme_key in seen:
             continue
-        try:
-            base = get_base_theme(theme_key)
-        except Exception:
-            continue
+        base = get_base_theme(theme_key)
         THEMES.setdefault(theme_key, _map_base_theme_to_namenfit(base, theme_key))
         merged_order.append(theme_key)
         seen.add(theme_key)
