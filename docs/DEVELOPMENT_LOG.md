@@ -18,6 +18,8 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Shared-Tooltip-Polish uebernommen: `bw_gui.widgets.HoverTooltip` nutzt jetzt verzoegertes Anzeigen, Theme-Ableitung aus dem aktiven Fensterkontext sowie Bildschirm-Clamping fuer stabile Hover-Overlays.
+- Shared-Theme-Feinschliff uebernommen: gemeinsame Settings-/Sidebar-Stile und verfeinerte Scrollbar-Kontraste kommen jetzt aus dem aktualisierten `bw-gui`-Submodule-Stand.
 - Tk/ttk-Runtime-Pilotmigration erweitert: `app/ui/ui.py` nutzt jetzt zentrale Runtime-Aliases aus `bw_gui.runtime` (`ui`/`widgets`) statt direkter `tkinter`-/`ttk`-Imports.
 - Tk-Runtime-Pilotmigration erweitert: `app/ui/level_dialog.py` und `app/ui/learning_menu.py` nutzen jetzt `bw_gui.runtime.ui` statt direkter `tkinter`-Imports.
 - Tk-Runtime-Pilotmigration erweitert: `app/ui/window_identity.py` nutzt jetzt `bw_gui.runtime.ui`-Typen/Exceptions statt direktem `tkinter`-Import.

@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Hover tooltips now appear with smoother delayed behavior, pick up the active app theme automatically, and stay fully visible on-screen.
+- Shared settings/sidebar and scrollbar theming received a visual polish via the updated `bw-gui` baseline styles.
 - App startup now initializes the root window via shared `bw_gui.runtime.ui` aliases instead of importing `tkinter` directly in `app/app.py`.
 - Window identity/icon helpers now use shared `bw_gui.runtime.ui` aliases in `app/ui/window_identity.py` instead of importing `tkinter` directly.
 - Level selection and learning menu builders now use shared `bw_gui.runtime.ui` aliases (`app/ui/level_dialog.py`, `app/ui/learning_menu.py`) instead of direct `tkinter` imports.
