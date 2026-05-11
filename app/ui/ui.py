@@ -67,7 +67,7 @@ from bw_libs.ui_contract.hsm import (
     build_ui_hsm_contract,
 )
 from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
-from bw_libs.ui_contract.laufkern import verify_manifest, verify_reachability
+from bw_libs.ui_contract.laufkern import aggregate_completion, emit_tracking_artifact, verify_manifest, verify_reachability
 from .ui_intents import UiIntent
 from .laufkern_manifest_provider import build_runtime_shortcut_manifest
 from ..core.learning_profiles import (
@@ -206,6 +206,10 @@ class QuizApp:
         self._shortcut_runtime_debug_context_var = None
         self._shortcut_runtime_debug_summary_var = None
         self._shortcut_runtime_debug_offline_var = None
+        self._laufkern_tracking_run_id = "runtime-shortcuts"
+        self._laufkern_tracking_sequence = 0
+        self._laufkern_tracking_step_ids = {}
+        self._laufkern_tracking_artifacts = []
         self._shared_menu_bar = None
         self._hover_tooltips = []
 
@@ -1177,7 +1181,14 @@ class QuizApp:
             can_execute, _reason = self._runtime_shortcuts.evaluate_runtime(definition, context)
             if not can_execute:
                 return None
-            return handler(event)
+            try:
+                result = handler(event)
+            except Exception:
+                self._record_laufkern_intent_dispatch(intent, success=False)
+                raise
+
+            self._record_laufkern_intent_dispatch(intent, success=True)
+            return result
 
         self.root.bind(sequence, _wrapped)
 
@@ -1197,6 +1208,47 @@ class QuizApp:
         results = verify_reachability(manifest=manifest, context=context)
         reachable = sum(1 for result in results if result.reachable)
         return f"LaufKern intents {reachable}/{len(results)} erreichbar"
+
+    def _laufkern_step_id_for_intent(self, intent: str) -> str:
+        """Return stable runtime-tracking step id for one intent during this session."""
+
+        existing = self._laufkern_tracking_step_ids.get(intent)
+        if existing is not None:
+            return existing
+
+        next_index = len(self._laufkern_tracking_step_ids) + 1
+        step_id = f"LK-D-RTC-{next_index:03d}"
+        self._laufkern_tracking_step_ids[intent] = step_id
+        return step_id
+
+    def _record_laufkern_intent_dispatch(self, intent: str, *, success: bool) -> None:
+        """Record runtime intent dispatch result as LaufKern tracking artifact."""
+
+        self._laufkern_tracking_sequence += 1
+        artifact = emit_tracking_artifact(
+            run_id=self._laufkern_tracking_run_id,
+            repo_name="namenfit",
+            step_id=self._laufkern_step_id_for_intent(intent),
+            phase="D",
+            state="done" if success else "failed",
+            sequence=self._laufkern_tracking_sequence,
+            mandatory=True,
+            producer="laufkern-runtime",
+            evidence_ref=intent,
+        )
+        self._laufkern_tracking_artifacts.append(artifact)
+
+    def _summarize_laufkern_completion(self) -> str:
+        """Return compact completion status summary from tracked runtime artifacts."""
+
+        if not self._laufkern_tracking_artifacts:
+            return "LK completion n/a"
+
+        summary = aggregate_completion(
+            self._laufkern_tracking_artifacts,
+            trusted_producers={"laufkern-runtime"},
+        )
+        return f"LK completion {summary.status} {summary.completed_steps}/{summary.mandatory_steps}"
 
     def _close_active_popup_on_escape(self):
         self._sync_popup_sessions_from_windows()
@@ -1361,6 +1413,7 @@ class QuizApp:
                         f"{active_count} active",
                         f"{disabled_count} disabled",
                         self._summarize_laufkern_reachability(context=context),
+                        self._summarize_laufkern_completion(),
                     ]
                 )
             )
