@@ -9,6 +9,7 @@ Regel:
 ## [Unreleased]
 
 ### Added
+- LaufKern-Bridge eingefuehrt: neues zentrales Modul `bw_libs/ui_contract/laufkern.py` (Shared-`bw_gui.laufkern`-Bridge mit lokalem Fallback) und Export ueber `bw_libs/ui_contract/__init__.py`; zusaetzlicher Regressionstest `tests/test_laufkern_bridge.py` fuer Manifestaufbau und Shortcut-basierte Reachability.
 - Guardrail-Basis eingefuehrt: `AGENTS.md`, `.github/copilot-instructions.md`, PR-Template und lokales/CI-faeiges Guardrail-Skript `tools/ci/check_ai_guardrails.py`.
 - Zentrale UI-Basis fuer Tastatur- und Popup-Steuerung eingefuehrt: `app/ui/keybinding_registry.py` und `app/ui/popup_policy.py`.
 - Runtime-Debug-Popup fuer Shortcuts in der GUI (`Debug -> Shortcut-Runtime-Debug anzeigen`, `Strg+Shift+D`) inkl. Offline-Simulation (`Strg+Shift+O`) und tabellarischer Aktiv/Disabled-Gruende.

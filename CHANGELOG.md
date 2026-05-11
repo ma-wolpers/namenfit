@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Namenfit bindet jetzt eine zentrale LaufKern-Bridge (`bw_libs.ui_contract.laufkern`) fuer Manifest-, Reachability- und Tracking-Vertraege ein und bereitet damit die Trennung "Programm = Was" und "LaufKern = Wie" technisch vor.
 - AI guardrails now also block local redefinitions of reserved shared primitives (`TkRootHost`, `ScrollablePopupWindow`, `WrappedTextField`) so these runtime/dialog/widget foundations must be consumed from `bw-gui` instead of being rebuilt in-repo.
 - `bw-gui` submodule was updated to the latest shared runtime/dialog/widget baseline so the new central primitives (`TkRootHost`, `ScrollablePopupWindow`, `WrappedTextField`) are available for further migration steps.
 - AI guardrails now include `bw_libs/` in the repo-wide GUI contract scan scope, so direct `tkinter`/`ttk` imports and new local `ui`/`widgets`/`tui` baseclass patterns are also blocked in shared-library paths.
