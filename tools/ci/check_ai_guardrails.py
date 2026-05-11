@@ -29,6 +29,64 @@ PROCESS_GUIDANCE_RULES = {
     "feature_commit": "Feature-Aenderungen werden in eigenstaendigen Commits",
     "manual_push": "Push erfolgt manuell",
 }
+SHORTCUT_COVERAGE_SOFT_CHECKS = (
+    {
+        "label": "quiz-enter",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("QUIZ_ENTER", "quiz.enter"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.QUIZ_ENTER",),
+    },
+    {
+        "label": "quiz-enter-numpad",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("QUIZ_ENTER_NUMPAD", "quiz.enter.numpad"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.QUIZ_ENTER_NUMPAD",),
+    },
+    {
+        "label": "quiz-space",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("QUIZ_SPACE", "quiz.space"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.QUIZ_SPACE",),
+    },
+    {
+        "label": "quiz-typo",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("QUIZ_TYPO", "quiz.typo"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.QUIZ_TYPO",),
+    },
+    {
+        "label": "settings-toggle-group-gate",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("SETTINGS_TOGGLE_GROUP_GATE", "settings.toggle_group_gate"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE",),
+    },
+    {
+        "label": "debug-runtime-overlay",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("DEBUG_RUNTIME_OVERLAY", "debug.runtime.overlay"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.DEBUG_RUNTIME_OVERLAY",),
+    },
+    {
+        "label": "debug-runtime-offline",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("DEBUG_RUNTIME_OFFLINE", "debug.runtime.offline"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.DEBUG_RUNTIME_OFFLINE",),
+    },
+    {
+        "label": "global-escape",
+        "intent_paths": ("app/ui/ui_intents.py",),
+        "intent_markers": ("GLOBAL_ESCAPE", "global.escape"),
+        "shortcut_paths": ("app/ui/ui.py",),
+        "shortcut_markers": ("intent=UiIntent.GLOBAL_ESCAPE",),
+    },
+)
 CHANGELOG_RELEVANT_PREFIXES = (
     "app/ui/",
     "bw_libs/",
@@ -277,6 +335,38 @@ def _collect_process_guidance_warnings() -> list[str]:
     return warnings
 
 
+def _has_any_marker(rel_paths: tuple[str, ...], markers: tuple[str, ...]) -> bool:
+    """Return whether any marker appears in at least one existing source file."""
+
+    for rel_path in rel_paths:
+        path = ROOT / rel_path
+        if not path.exists():
+            continue
+        text = _read(rel_path)
+        if any(marker in text for marker in markers):
+            return True
+    return False
+
+
+def _collect_shortcut_coverage_warnings() -> list[str]:
+    """Collect non-blocking warnings when key intents miss keyboard shortcut markers."""
+
+    warnings: list[str] = []
+    for check in SHORTCUT_COVERAGE_SOFT_CHECKS:
+        intent_paths = tuple(check["intent_paths"])
+        intent_markers = tuple(check["intent_markers"])
+        shortcut_paths = tuple(check["shortcut_paths"])
+        shortcut_markers = tuple(check["shortcut_markers"])
+        if not _has_any_marker(intent_paths, intent_markers):
+            continue
+        if _has_any_marker(shortcut_paths, shortcut_markers):
+            continue
+        warnings.append(
+            f"shortcut-coverage ({check['label']}): intent marker found without configured keyboard binding marker"
+        )
+    return warnings
+
+
 def _check_runtime_shortcut_integration(errors: list[str]) -> None:
     """Require runtime shortcut and popup policy integration in the GUI."""
 
@@ -480,6 +570,7 @@ def main() -> int:
     _check_repo_wide_gui_contracts(errors)
     _check_gui_migration_backlog(errors)
     warnings = _collect_process_guidance_warnings()
+    warnings.extend(_collect_shortcut_coverage_warnings())
 
     if errors:
         print("AI guardrail check failed:")

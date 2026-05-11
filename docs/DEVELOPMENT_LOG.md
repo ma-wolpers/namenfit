@@ -19,6 +19,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Allgemeiner Soft-Guardrail fuer Shortcut-Abdeckung ergaenzt: `tools/ci/check_ai_guardrails.py` meldet lokal (non-blocking) Warnungen, wenn konfigurierte Kern-Intents (Quiz-Enter/Space/Typo, Settings-Toggle, Debug-Overlay/Offline, Escape) ohne passenden Keyboard-Binding-Marker gefunden werden.
 - Phase-I-Decommission abgeschlossen: die zentralen UI-Contract-Bridges (`bw_libs/ui_contract/keybinding.py`, `bw_libs/ui_contract/popup.py`, `bw_libs/ui_contract/hsm.py`, `bw_libs/ui_contract/laufkern.py`) wurden auf schlanke Shared-Re-Exports reduziert; tote lokale Duplikat-Implementierungen sind entfernt.
 - Guardrail-Decommission-Gate aktiviert: `tools/ci/check_ai_guardrails.py` erzwingt jetzt in allen vier Bridge-Modulen `ensure_bw_gui_on_path` + Shared-Import und blockiert lokale Re-Implementierungsmarker der Contract-Klassen/Funktionen.
 - Wave-3-Sunset abgeschlossen: lokale `ModuleNotFoundError`-Fallback-Zweige wurden aus den zentralen UI-Contract-Bridges (`bw_libs/ui_contract/keybinding.py`, `bw_libs/ui_contract/popup.py`, `bw_libs/ui_contract/hsm.py`, `bw_libs/ui_contract/laufkern.py`) entfernt; Shared-Imports sind jetzt verpflichtend.
