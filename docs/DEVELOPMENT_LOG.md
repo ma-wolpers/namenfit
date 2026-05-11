@@ -19,6 +19,7 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- LaufKern-Runtime-Auswertung in den produktiven Shortcut-Debug-Flow integriert: `app/ui/ui.py` baut jetzt ein Manifest aus der Runtime-Shortcut-Registry, validiert es zentral und zeigt die aktuelle Intent-Reachability im Debug-Summary.
 - Step-6-Guardrail-Hardening umgesetzt: `tools/ci/check_ai_guardrails.py` blockiert jetzt zusaetzlich repo-weit lokale Neudefinitionen der reservierten Shared-Primitives `TkRootHost`, `ScrollablePopupWindow` und `WrappedTextField`, damit zentrale bw-gui-Bausteine nicht mehr als lokale Klassen nachgebaut werden.
 - Step-5-Rollout fortgesetzt: `bw-gui`-Submodule auf den neuen Shared-Stand mit `TkRootHost`, `ScrollablePopupWindow` und `WrappedTextField` aktualisiert, sodass die zentralen Host-/Popup-/Form-Bausteine fuer Folge-Migrationen im Repo verfuegbar sind.
 - Step-2-Guardrail-Scope abgeschlossen: die repo-weite GUI-Vertragspruefung in `tools/ci/check_ai_guardrails.py` umfasst jetzt zusaetzlich `bw_libs/`, sodass direkte `tkinter`/`ttk`-Imports und neue lokale `ui`/`widgets`/`tui`-Basisklassen auch in Shared-Library-Pfaden blockiert werden.
