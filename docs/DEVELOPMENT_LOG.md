@@ -19,6 +19,9 @@ Regel:
 - Tests `tests/test_hsm_contract.py` fuer Intent-Contract, Transition-Gates und Escape-Prioritaetskette hinzugefuegt.
 
 ### Changed
+- Menue-Standardisierung umgesetzt: `app/ui/ui.py` baut das Hauptmenue jetzt ueber den zentralen `bw_gui.menu.standard_menu`-Baukasten mit Core-Reihenfolge (`Datei`, `Bearbeiten`, `Ansicht`, `Hilfe`) und app-spezifischen Erweiterungssektionen (`Lernen`, `Debug`, `Ton`, `Sitzplan`) auf.
+- Settings-Orchestrierung zentralisiert: `app/ui/ui.py` nutzt jetzt `bw_gui.dialogs.SettingsDialogOrchestrator` als einheitlichen Einstieg fuer den tab-basierten Runtime-Settings-Dialog.
+- Shared-UI-Guardrail aktualisiert: `tools/ci/check_ai_guardrails.py` prueft den orchestrierten Settings-Flow und den standardisierten Menue-Builder statt des bisherigen direkten `open_tabbed_settings_dialog`-Aufrufs.
 - Allgemeiner Soft-Guardrail fuer Shortcut-Abdeckung ergaenzt: `tools/ci/check_ai_guardrails.py` meldet lokal (non-blocking) Warnungen, wenn konfigurierte Kern-Intents (Quiz-Enter/Space/Typo, Settings-Toggle, Debug-Overlay/Offline, Escape) ohne passenden Keyboard-Binding-Marker gefunden werden.
 - Phase-I-Decommission abgeschlossen: die zentralen UI-Contract-Bridges (`bw_libs/ui_contract/keybinding.py`, `bw_libs/ui_contract/popup.py`, `bw_libs/ui_contract/hsm.py`, `bw_libs/ui_contract/laufkern.py`) wurden auf schlanke Shared-Re-Exports reduziert; tote lokale Duplikat-Implementierungen sind entfernt.
 - Guardrail-Decommission-Gate aktiviert: `tools/ci/check_ai_guardrails.py` erzwingt jetzt in allen vier Bridge-Modulen `ensure_bw_gui_on_path` + Shared-Import und blockiert lokale Re-Implementierungsmarker der Contract-Klassen/Funktionen.

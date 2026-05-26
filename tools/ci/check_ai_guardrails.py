@@ -120,7 +120,7 @@ FUTURE_GUI_REQUIRED_SHARED_SNIPPETS = (
     "ensure_bw_gui_on_path()",
     "from bw_gui.runtime import",
     "from bw_gui.menu import",
-    "open_tabbed_settings_dialog",
+    "SettingsDialogOrchestrator",
     "compose_hover_text",
     "HoverTooltip",
 )
@@ -403,20 +403,22 @@ def _check_shared_ui_contracts(errors: list[str]) -> None:
     ui_module = _read("app/ui/ui.py")
 
     required_snippets = (
-        "from bw_gui.dialogs import open_tabbed_settings_dialog as open_shared_tabbed_settings_dialog",
+        "from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator",
         "from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar",
+        "from bw_gui.menu import build_standard_menu_definitions as build_shared_standard_menu_definitions",
+        "from bw_gui.menu import section_spec as shared_menu_section_spec",
         "from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text",
         "from bw_gui.widgets import HoverTooltip as SharedHoverTooltip",
         "self._shared_menu_bar = SharedCustomMenuBar(",
+        "self._settings_dialog_orchestrator = SharedSettingsDialogOrchestrator(",
         "tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)",
-        "open_shared_tabbed_settings_dialog(",
+        "self._settings_dialog_orchestrator.open(self.root)",
     )
     forbidden_snippets = (
         "except ModuleNotFoundError",
         "if SharedCustomMenuBar is None",
         "if SharedHoverTooltip is None",
         "if compose_shared_hover_text is None",
-        "if open_shared_tabbed_settings_dialog is None",
         "def _build_native_menu(",
     )
 

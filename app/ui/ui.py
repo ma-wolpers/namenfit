@@ -9,13 +9,14 @@ from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
 from bw_gui.runtime import ui, widgets
+from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator
 from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
 from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
 from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
-from bw_gui.dialogs import open_tabbed_settings_dialog as open_shared_tabbed_settings_dialog
 from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar
-from bw_gui.menu import MenuDefinition as SharedMenuDefinition
 from bw_gui.menu import MenuItem as SharedMenuItem
+from bw_gui.menu import build_standard_menu_definitions as build_shared_standard_menu_definitions
+from bw_gui.menu import section_spec as shared_menu_section_spec
 from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
 from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
 
@@ -28,6 +29,7 @@ except ImportError:
     winsound = None
 
 from .level_dialog import ask_level
+from .dialog_services import messagebox
 from .phase_ui import apply_phase_ui
 from ..core.models import (
     LEVEL_1,
@@ -211,6 +213,7 @@ class QuizApp:
         self._laufkern_tracking_step_ids = {}
         self._laufkern_tracking_artifacts = []
         self._shared_menu_bar = None
+        self._settings_dialog_orchestrator = None
         self._hover_tooltips = []
 
         # Sequentielle Phasen-Logik
@@ -240,7 +243,7 @@ class QuizApp:
         return True
 
     def _build_menu(self):
-        """Erstellt die Menüleiste inkl. Theme-Auswahl."""
+        """Erstellt die Menueleiste mit standardisierten Kernrubriken."""
 
         self.theme_var = ui.StringVar(value=self.theme_key)
         self.review_profile_var = ui.StringVar(value=self.progress_store.get_review_profile())
@@ -258,15 +261,48 @@ class QuizApp:
         self.sound_volume_var = ui.IntVar(value=self.sound_volume)
         self.level2_group_gate_var = ui.BooleanVar(value=self.level2_require_group_before_neighbors)
 
+        self._settings_dialog_orchestrator = SharedSettingsDialogOrchestrator(
+            title="Einstellungen",
+            theme_key_provider=lambda: self.theme_var.get(),
+            spec_provider=self._build_settings_dialog_spec,
+            values_provider=self._build_settings_dialog_values,
+            commit_handler=self._apply_settings_dialog_payload,
+        )
+
         if self._shared_menu_bar is not None:
             self._shared_menu_bar.destroy()
 
-        definitions = (
-            SharedMenuDefinition(key="ansicht", label="Ansicht", alt="a", items_provider=self._menu_items_view),
-            SharedMenuDefinition(key="lernen", label="Lernen", alt="l", items_provider=self._menu_items_learning),
-            SharedMenuDefinition(key="debug", label="Debug", alt="d", items_provider=self._menu_items_debug),
-            SharedMenuDefinition(key="ton", label="Ton", alt="t", items_provider=self._menu_items_sound),
-            SharedMenuDefinition(key="sitzplan", label="Sitzplan", alt="s", items_provider=self._menu_items_seat),
+        definitions = build_shared_standard_menu_definitions(
+            file_section=shared_menu_section_spec(
+                "file",
+                self._menu_items_file,
+                label="Datei",
+                alt="d",
+            ),
+            edit_section=shared_menu_section_spec(
+                "edit",
+                self._menu_items_edit,
+                label="Bearbeiten",
+                alt="b",
+            ),
+            view_section=shared_menu_section_spec(
+                "view",
+                self._menu_items_view,
+                label="Ansicht",
+                alt="a",
+            ),
+            extra_sections=(
+                shared_menu_section_spec("lernen", self._menu_items_learning, label="Lernen", alt="l"),
+                shared_menu_section_spec("debug", self._menu_items_debug, label="Debug", alt="g"),
+                shared_menu_section_spec("ton", self._menu_items_sound, label="Ton", alt="t"),
+                shared_menu_section_spec("sitzplan", self._menu_items_seat, label="Sitzplan", alt="s"),
+            ),
+            help_section=shared_menu_section_spec(
+                "help",
+                self._menu_items_help,
+                label="Hilfe",
+                alt="h",
+            ),
         )
 
         self._shared_menu_bar = SharedCustomMenuBar(
@@ -297,6 +333,23 @@ class QuizApp:
 
         self.theme_var.set(theme_key)
         self._on_theme_changed()
+
+    def _menu_items_file(self):
+        return (
+            SharedMenuItem(type="command", label="Einstellungen...", command=self._open_settings_dialog),
+            SharedMenuItem(type="separator"),
+            SharedMenuItem(type="command", label="Beenden", command=self.root.destroy),
+        )
+
+    def _menu_items_edit(self):
+        return (
+            SharedMenuItem(type="command", label="Naechste Person (Leertaste)", command=self.next_person),
+            SharedMenuItem(
+                type="command",
+                label="Aktives Eingabefeld fokussieren",
+                command=lambda: self._focus_entry_for_phase(self.current_phase),
+            ),
+        )
 
     def _attach_hover_help(self, widget, *, label, shortcut=None):
         """Attach shared tooltip text for action buttons and shortcuts."""
@@ -524,6 +577,18 @@ class QuizApp:
             ),
         )
 
+    def _menu_items_help(self):
+        return (
+            SharedMenuItem(type="command", label="Ueber Namenfit", command=self._show_about_dialog),
+        )
+
+    def _show_about_dialog(self):
+        messagebox.showinfo(
+            "Ueber Namenfit",
+            f"{APP_INFO.name}\nVersion: {APP_INFO.version}",
+            parent=self.root,
+        )
+
     def _build_settings_dialog_spec(self):
         """Build shared tabbed settings schema for Namenfit runtime options."""
 
@@ -737,18 +802,18 @@ class QuizApp:
         self._on_level2_group_gate_changed()
 
     def _open_settings_dialog(self):
-        """Open the shared tabbed settings dialog for runtime learning/debug/theme options."""
+        """Open orchestrated shared settings dialog for runtime options."""
 
-        spec = self._build_settings_dialog_spec()
+        if self._settings_dialog_orchestrator is None:
+            self._settings_dialog_orchestrator = SharedSettingsDialogOrchestrator(
+                title="Einstellungen",
+                theme_key_provider=lambda: self.theme_var.get(),
+                spec_provider=self._build_settings_dialog_spec,
+                values_provider=self._build_settings_dialog_values,
+                commit_handler=self._apply_settings_dialog_payload,
+            )
 
-        open_shared_tabbed_settings_dialog(
-            self.root,
-            title="Einstellungen",
-            theme_key=self.theme_var.get(),
-            spec=spec,
-            initial_values=self._build_settings_dialog_values(),
-            on_commit=self._apply_settings_dialog_payload,
-        )
+        self._settings_dialog_orchestrator.open(self.root)
 
     def _on_theme_changed(self):
         self.theme_key = normalize_theme_key(self.theme_var.get())
