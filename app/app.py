@@ -9,26 +9,20 @@ Dieses Modul hält bewusst nur den Ablauf zusammen:
 Fachlogik, Persistenz und UI-Teilbereiche liegen in eigenen Modulen.
 """
 
+from dataclasses import replace
+
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import ui
 
 from .bootstrap.wiring import build_gui_dependencies
 from .core.models import LEVEL_1, LEVEL_2, MODE_COMBINED, MODE_CSV
 from .core.session import CombinedSourceMismatchError, build_runtime_session
 from .ui.dialog_services import messagebox
-from .ui import ui
+from .ui.level_dialog import ask_level
 from .ui.startup_dialog import ask_data_source_dialog
+from .ui.ui import QuizApp
 from .ui.window_identity import configure_windows_process_identity
-
-
-def _focus_window(window):
-    if not window or not window.winfo_exists():
-        return
-    window.deiconify()
-    window.lift()
-    window.focus_force()
 
 
 def main():
@@ -44,14 +38,10 @@ def main():
         if not selection:
             return
 
-        root = ui.Tk()
-        _focus_window(root)
-
         selected_level = LEVEL_1
         if selection.mode in (MODE_CSV, MODE_COMBINED):
-            selected_level = ui.ask_level(root, current_level=recent_store.get_last_level())
+            selected_level = ask_level(current_level=recent_store.get_last_level())
             if selected_level not in (LEVEL_1, LEVEL_2):
-                root.destroy()
                 return
             recent_store.set_last_level(selected_level)
 
@@ -66,12 +56,9 @@ def main():
                     "Ja = nur mit Schnittmenge starten\n"
                     "Nein = zurück zur Auswahl"
                 ),
-                parent=root,
             )
-            _focus_window(root)
 
             if not decision:
-                root.destroy()
                 continue
 
             try:
@@ -81,9 +68,7 @@ def main():
                     allow_intersection_on_mismatch=True,
                 )
             except ValueError as retry_err:
-                messagebox.showerror("Fehler", str(retry_err), parent=root)
-                _focus_window(root)
-                root.destroy()
+                messagebox.showerror("Fehler", str(retry_err))
                 continue
         except ValueError as err:
             # Ungültige Quellen direkt aus Recent entfernen, wenn sie nicht mehr existieren.
@@ -93,9 +78,7 @@ def main():
                 for photo_folder in selection.photo_folders:
                     recent_store.remove_invalid_path(photo_folder, "photos")
 
-            messagebox.showerror("Fehler", str(err), parent=root)
-            _focus_window(root)
-            root.destroy()
+            messagebox.showerror("Fehler", str(err))
             continue
 
         recent_store.register_many(selection.csv_paths, selection.photo_folders)
@@ -114,9 +97,9 @@ def main():
         if isinstance(selection.learning_settings, dict):
             runtime.progress_store.apply_learning_settings(selection.learning_settings)
 
-        root.title(runtime.title)
-        ui.QuizApp(
-            root,
+        shell_config = replace(dependencies.shell_config, title=runtime.title)
+
+        QuizApp(
             runtime.people,
             runtime.grid,
             selected_level,
@@ -134,7 +117,6 @@ def main():
             recent_store.set_sound_options,
             level2_require_group_before_neighbors,
             recent_store.set_level2_require_group_before_neighbors,
-            shell_config=dependencies.shell_config,
-        )
-        root.mainloop()
+            shell_config=shell_config,
+        ).run()
         continue

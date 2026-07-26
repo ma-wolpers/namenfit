@@ -8,15 +8,13 @@ from io import BytesIO
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import ui, widgets
+from bw_gui.runtime import BwBaseWindow, ui, widgets
 from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator
 from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
 from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
 from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
-from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar
 from bw_gui.menu import MenuItem as SharedMenuItem
-from bw_gui.menu import build_standard_menu_definitions as build_shared_standard_menu_definitions
-from bw_gui.menu import section_spec as shared_menu_section_spec
+from bw_gui.menu import section_spec
 from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
 from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
 
@@ -54,7 +52,7 @@ from ..core.stats_format import (
     stats_text_level1,
     stats_text_level2,
 )
-from bw_libs.ui_contract.keybinding import (
+from bw_gui.contracts.keybinding import (
     UI_MODE_DIALOG,
     UI_MODE_EDITOR,
     UI_MODE_GLOBAL,
@@ -63,13 +61,13 @@ from bw_libs.ui_contract.keybinding import (
     KeybindingRegistry,
     KeybindingRuntimeContext,
 )
-from bw_libs.ui_contract.hsm import (
+from bw_gui.contracts.hsm import (
     ESCAPE_CLOSE_POPUP,
     ESCAPE_EXIT_INLINE_EDITOR,
     build_ui_hsm_contract,
 )
-from bw_libs.ui_contract.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
-from bw_libs.ui_contract.laufkern import aggregate_completion, emit_tracking_artifact, verify_manifest, verify_reachability
+from bw_gui.contracts.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
+from bw_gui.laufkern import aggregate_completion, emit_tracking_artifact, verify_manifest, verify_reachability
 from .ui_intents import UiIntent
 from .laufkern_manifest_provider import build_runtime_shortcut_manifest
 from ..core.learning_profiles import (
@@ -82,11 +80,8 @@ from ..core.learning_profiles import (
 )
 from ..core.review_scheduler import REVIEW_PROFILES
 from ..app_info import APP_INFO
-from bw_libs.app_shell import AppShellConfig, TkinterAppShell
+from bw_gui.runtime import AppShellConfig
 from .ui_theme import (
-    DEFAULT_THEME,
-    THEMES,
-    THEME_ORDER,
     BG_MAIN,
     FG_MUTED,
     FG_PRIMARY,
@@ -111,12 +106,11 @@ def _known_ui_intents() -> tuple[str, ...]:
     return tuple(sorted(set(values)))
 
 
-class QuizApp:
+class QuizApp(BwBaseWindow):
     """Hauptfenster des Quiz mit levelabhängiger Auswertung und Statistik."""
 
     def __init__(
         self,
-        root,
         people,
         grid,
         level,
@@ -136,14 +130,6 @@ class QuizApp:
         on_level2_setting_changed=None,
         shell_config: AppShellConfig | None = None,
     ):
-        self.root = root
-        resolved_shell_config = shell_config or AppShellConfig(
-            title=APP_INFO.window_title,
-            geometry="980x860",
-            min_width=760,
-            min_height=620,
-        )
-        self.app_shell = TkinterAppShell(self.root, resolved_shell_config, on_close=self._on_shell_close)
         self.progress_store = progress_store
         self.on_theme_changed_callback = on_theme_changed
         self.on_learning_settings_changed_callback = on_learning_settings_changed
@@ -151,7 +137,6 @@ class QuizApp:
         self.on_sound_options_changed_callback = on_sound_options_changed
         self.on_level2_setting_changed_callback = on_level2_setting_changed
         self.theme_key = normalize_theme_key(initial_theme_key or self.progress_store.get_theme_key())
-        apply_window_theme(self.root, self.theme_key)
         self.people = people
         self.grid = grid
         self.level = level
@@ -212,7 +197,6 @@ class QuizApp:
         self._laufkern_tracking_sequence = 0
         self._laufkern_tracking_step_ids = {}
         self._laufkern_tracking_artifacts = []
-        self._shared_menu_bar = None
         self._settings_dialog_orchestrator = None
         self._hover_tooltips = []
 
@@ -225,12 +209,53 @@ class QuizApp:
         # Bild-Referenz (muss gehalten werden für Tkinter)
         self.current_photo_image = None
 
-        self._build_widgets()
+        resolved_shell_config = shell_config or AppShellConfig(
+            title=APP_INFO.window_title,
+            geometry="980x860",
+            min_width=760,
+            min_height=620,
+        )
+        super().__init__(
+            title=resolved_shell_config.title,
+            geometry=resolved_shell_config.geometry,
+            min_width=resolved_shell_config.min_width,
+            min_height=resolved_shell_config.min_height,
+            theme_key=self.theme_key,
+            on_close=self._on_shell_close,
+        )
+
+    def build_menu(self) -> list:
+        return [
+            section_spec("file", self._menu_items_file, label="Datei", alt="d"),
+            section_spec("edit", self._menu_items_edit, label="Bearbeiten", alt="b"),
+            section_spec("view", self._menu_items_view, label="Ansicht", alt="a"),
+            section_spec("lernen", self._menu_items_learning, label="Lernen", alt="l"),
+            section_spec("debug", self._menu_items_debug, label="Debug", alt="g"),
+            section_spec("ton", self._menu_items_sound, label="Ton", alt="t"),
+            section_spec("sitzplan", self._menu_items_seat, label="Sitzplan", alt="s"),
+            section_spec("help", self._menu_items_help, label="Hilfe", alt="h"),
+        ]
+
+    def build_content(self, frame) -> None:
+        self.root = self  # backward-compat alias for all self.root.* calls
         self._build_menu()
+        self._build_widgets(parent=frame)
         self._apply_theme()
         self._bind_shortcuts()
         self._apply_level_widgets()
         self.next_person()
+
+    def open_settings(self) -> None:
+        self._open_settings_dialog()
+
+    def apply_theme(self, theme_key: str) -> None:
+        """Called by BwBaseWindow View menu theme radios."""
+        from .ui_theme import normalize_theme_key as nf_normalize
+        _key = nf_normalize(theme_key)
+        self._shell.apply_theme(_key)
+        if hasattr(self, "theme_var"):
+            self.theme_var.set(_key)
+            self._on_theme_changed()
 
     def _on_shell_close(self) -> bool:
         """Close auxiliary windows before shutting down the root shell."""
@@ -243,7 +268,7 @@ class QuizApp:
         return True
 
     def _build_menu(self):
-        """Erstellt die Menueleiste mit standardisierten Kernrubriken."""
+        """Erstellt StringVars und Settings-Orchestrator (Menü-Struktur geht an BwBaseWindow)."""
 
         self.theme_var = ui.StringVar(value=self.theme_key)
         self.review_profile_var = ui.StringVar(value=self.progress_store.get_review_profile())
@@ -269,49 +294,6 @@ class QuizApp:
             commit_handler=self._apply_settings_dialog_payload,
         )
 
-        if self._shared_menu_bar is not None:
-            self._shared_menu_bar.destroy()
-
-        definitions = build_shared_standard_menu_definitions(
-            file_section=shared_menu_section_spec(
-                "file",
-                self._menu_items_file,
-                label="Datei",
-                alt="d",
-            ),
-            edit_section=shared_menu_section_spec(
-                "edit",
-                self._menu_items_edit,
-                label="Bearbeiten",
-                alt="b",
-            ),
-            view_section=shared_menu_section_spec(
-                "view",
-                self._menu_items_view,
-                label="Ansicht",
-                alt="a",
-            ),
-            extra_sections=(
-                shared_menu_section_spec("lernen", self._menu_items_learning, label="Lernen", alt="l"),
-                shared_menu_section_spec("debug", self._menu_items_debug, label="Debug", alt="g"),
-                shared_menu_section_spec("ton", self._menu_items_sound, label="Ton", alt="t"),
-                shared_menu_section_spec("sitzplan", self._menu_items_seat, label="Sitzplan", alt="s"),
-            ),
-            help_section=shared_menu_section_spec(
-                "help",
-                self._menu_items_help,
-                label="Hilfe",
-                alt="h",
-            ),
-        )
-
-        self._shared_menu_bar = SharedCustomMenuBar(
-            self.root,
-            definitions,
-            theme_key=self.theme_var.get(),
-        )
-        self._shared_menu_bar.build()
-        self.root.config(menu="")
 
     def _set_menu_var(self, tk_var, value, callback=None):
         """Set a menu-backed Tk variable and run callback if configured."""
@@ -336,8 +318,6 @@ class QuizApp:
 
     def _menu_items_file(self):
         return (
-            SharedMenuItem(type="command", label="Einstellungen...", command=self._open_settings_dialog),
-            SharedMenuItem(type="separator"),
             SharedMenuItem(type="command", label="Beenden", command=self.root.destroy),
         )
 
@@ -361,20 +341,7 @@ class QuizApp:
         self._hover_tooltips.append(tooltip)
 
     def _menu_items_view(self):
-        theme_items = tuple(
-            SharedMenuItem(
-                type="radio",
-                label=THEMES[theme_key].get("label", theme_key),
-                checked=(self.theme_var.get() == theme_key),
-                command=lambda key=theme_key: self._set_theme_from_menu(key),
-            )
-            for theme_key in THEME_ORDER
-        )
-        return (
-            SharedMenuItem(type="command", label="Einstellungen...", command=self._open_settings_dialog),
-            SharedMenuItem(type="separator"),
-            SharedMenuItem(type="submenu", label="Theme", items=theme_items),
-        )
+        return ()
 
     def _menu_items_learning(self):
         items: list[SharedMenuItem] = []
@@ -600,19 +567,6 @@ class QuizApp:
         return SharedSettingsDialogSpec(
             sections=(
                 SharedSettingsSectionSpec(
-                    key="ansicht",
-                    label="Ansicht",
-                    fields=(
-                        SharedSettingsFieldSpec(
-                            key="theme_key",
-                            label="Theme",
-                            field_type="enum",
-                            enum_values=tuple(THEME_ORDER),
-                            default=self.theme_var.get(),
-                        ),
-                    ),
-                ),
-                SharedSettingsSectionSpec(
                     key="lernen",
                     label="Lernen",
                     fields=(
@@ -736,7 +690,6 @@ class QuizApp:
         """Return current runtime settings as shared-dialog payload."""
 
         return {
-            "theme_key": self.theme_var.get(),
             "learning_profile": self.learning_profile_var.get(),
             "review_profile": self.review_profile_var.get(),
             "allow_immediate_repeat": bool(self.allow_immediate_repeat_var.get()),
@@ -758,10 +711,6 @@ class QuizApp:
 
         if not isinstance(payload, dict):
             return
-
-        theme_key = normalize_theme_key(str(payload.get("theme_key", self.theme_var.get())))
-        self.theme_var.set(theme_key)
-        self._on_theme_changed()
 
         learning_profile = str(payload.get("learning_profile", self.learning_profile_var.get()) or CUSTOM_PROFILE)
         self.learning_profile_var.set(learning_profile)
@@ -820,8 +769,8 @@ class QuizApp:
         self.progress_store.set_theme_key(self.theme_key)
         if callable(self.on_theme_changed_callback):
             self.on_theme_changed_callback(self.theme_key)
-        if self._shared_menu_bar is not None:
-            self._shared_menu_bar.refresh_theme(self.theme_key)
+        if self._menu_bar is not None:
+            self._menu_bar.refresh_theme(self.theme_key)
         for tooltip in self._hover_tooltips:
             try:
                 setattr(tooltip, "theme_key", self.theme_key)
@@ -974,37 +923,39 @@ class QuizApp:
         style_secondary_button(self.typo_button, self.theme_key)
         style_secondary_button(self.switch_level_button, self.theme_key)
 
-    def _build_widgets(self):
+    def _build_widgets(self, parent=None):
         """Erstellt das UI in logisch getrennten Blöcken."""
 
+        _p = parent if parent is not None else self.root
+
         # Foto-Anzeige (für Foto-Modi)
-        self.photo_label = ui.Label(self.root, bg=BG_MAIN)
+        self.photo_label = ui.Label(_p, bg=BG_MAIN)
         # Initial nicht gepackt, wird in _apply_level_widgets gezeigt
 
-        self.prompt_label = ui.Label(self.root, text="", font=("Arial", 18), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.prompt_label = ui.Label(_p, text="", font=("Arial", 18), bg=BG_MAIN, fg=FG_PRIMARY)
         self.prompt_label.pack(pady=10)
 
-        self.result_label = ui.Label(self.root, text="", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.result_label = ui.Label(_p, text="", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
         self.result_label.pack(pady=(0, 8))
 
         # Name-Eingabe (für Foto-Modi)
-        self.name_label = ui.Label(self.root, text="Name:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.name_entry = ui.Entry(self.root, font=("Arial", 14))
+        self.name_label = ui.Label(_p, text="Name:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
+        self.name_entry = ui.Entry(_p, font=("Arial", 14))
         style_entry(self.name_entry, self.theme_key)
 
         self.group_label = ui.Label(
-            self.root,
+            _p,
             text=f"{self._group_term()}:",
             font=("Arial", 12),
             bg=BG_MAIN,
             fg=FG_PRIMARY,
         )
         self.group_label.pack()
-        self.group_entry = ui.Entry(self.root, font=("Arial", 14))
+        self.group_entry = ui.Entry(_p, font=("Arial", 14))
         style_entry(self.group_entry, self.theme_key)
         self.group_entry.pack(pady=(0, 8))
 
-        self.level2_frame = ui.Frame(self.root, bg=BG_MAIN)
+        self.level2_frame = ui.Frame(_p, bg=BG_MAIN)
         self.level2_frame.pack(pady=(0, 8))
 
         self.behind_label = ui.Label(self.level2_frame, text="Dahinter:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
@@ -1017,13 +968,13 @@ class QuizApp:
         self.front_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
         style_entry(self.front_entry, self.theme_key)
 
-        self.solve_button = ui.Button(self.root, text="Auflösen", command=self.solve)
+        self.solve_button = ui.Button(_p, text="Auflösen", command=self.solve)
         style_primary_button(self.solve_button, self.theme_key)
         self.solve_button.pack(pady=(2, 2))
         self._attach_hover_help(self.solve_button, label="Aktuelle Aufgabe aufloesen", shortcut="Enter")
 
         self.typo_button = ui.Button(
-            self.root,
+            _p,
             text="Ups, vertippt",
             command=self.mark_name_typo,
         )
@@ -1032,14 +983,14 @@ class QuizApp:
         self.typo_button.pack_forget()
         self._attach_hover_help(self.typo_button, label="Vertipper markieren", shortcut="Backspace")
 
-        self.next_button = ui.Button(self.root, text="Weiter", command=self.next_person)
+        self.next_button = ui.Button(_p, text="Weiter", command=self.next_person)
         style_primary_button(self.next_button, self.theme_key)
         self.next_button.pack(pady=5)
         self.next_button.pack_forget()
         self._attach_hover_help(self.next_button, label="Naechste Person laden", shortcut="Enter")
 
         self.switch_level_button = ui.Button(
-            self.root,
+            _p,
             text="Level wechseln",
             command=self.switch_level,
         )
@@ -1047,16 +998,16 @@ class QuizApp:
         self.switch_level_button.pack(pady=(2, 6))
         self._attach_hover_help(self.switch_level_button, label="Trainingslevel wechseln", shortcut=None)
 
-        self.stats_label = ui.Label(self.root, text="", font=("Arial", 10), fg=FG_MUTED, bg=BG_MAIN)
+        self.stats_label = ui.Label(_p, text="", font=("Arial", 10), fg=FG_MUTED, bg=BG_MAIN)
         self.stats_label.pack(pady=(0, 8))
 
-        self.aggregate_stats_label = ui.Label(self.root, text="", font=("Arial", 9), fg=FG_MUTED, bg=BG_MAIN)
+        self.aggregate_stats_label = ui.Label(_p, text="", font=("Arial", 9), fg=FG_MUTED, bg=BG_MAIN)
         self.aggregate_stats_label.pack(pady=(0, 8))
 
-        self.feedback_label = ui.Label(self.root, text="", font=("Arial", 9, "bold"), fg=FG_PRIMARY, bg=BG_MAIN)
+        self.feedback_label = ui.Label(_p, text="", font=("Arial", 9, "bold"), fg=FG_PRIMARY, bg=BG_MAIN)
         self.feedback_label.pack(pady=(6, 8))
 
-        self.debug_label = ui.Label(self.root, text="", font=("Arial", 8), fg=FG_MUTED, bg=BG_MAIN)
+        self.debug_label = ui.Label(_p, text="", font=("Arial", 8), fg=FG_MUTED, bg=BG_MAIN)
         self.debug_label.pack(pady=(0, 6))
 
     def _bind_shortcuts(self):

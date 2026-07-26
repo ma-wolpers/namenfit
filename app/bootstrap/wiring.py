@@ -6,7 +6,7 @@ from app.app_info import APP_INFO, AppInfo
 from app.config import app_state_file, discover_app_paths
 from app.storage.app_state_store import AppStateStore
 from bw_libs.app_paths import AppPaths
-from bw_libs.app_shell import AppShellConfig
+from bw_gui.runtime import AppShellConfig
 
 
 @dataclass(frozen=True)

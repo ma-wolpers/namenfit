@@ -9,18 +9,25 @@ from ..core.models import LEVEL_1, LEVEL_2
 from .ui_theme import BG_MAIN, FG_PRIMARY, apply_window_theme, style_primary_button
 
 
-def ask_level(root, current_level=None):
-    """Zeigt einen robusten Level-Dialog an."""
+def ask_level(root=None, current_level=None):
+    """Zeigt einen robusten Level-Dialog an.
 
-    level_win = ui.Toplevel(root)
+    root is optional. If given, the dialog is a transient Toplevel of that window.
+    If None, a standalone Tk root is created for the dialog.
+    """
+
+    if root is not None:
+        level_win = ui.Toplevel(root)
+        level_win.transient(root)
+    else:
+        level_win = ui.Tk()
     level_win.title("Schwierigkeit auswählen")
     level_win.resizable(False, False)
-    level_win.transient(root)
     level_win.deiconify()
     apply_window_theme(level_win)
 
-    chosen_level = ui.IntVar(value=current_level or LEVEL_1)
-    result_level = ui.IntVar(value=0)
+    chosen_level = ui.IntVar(master=level_win, value=current_level or LEVEL_1)
+    result_level = ui.IntVar(master=level_win, value=0)
 
     ui.Label(
         level_win,
@@ -74,7 +81,10 @@ def ask_level(root, current_level=None):
         level_win.lift()
         level_win.focus_force()
     level_win.grab_set()
-    root.wait_window(level_win)
+    if root is not None:
+        root.wait_window(level_win)
+    else:
+        level_win.mainloop()
 
     selected = result_level.get()
     return selected if selected in (LEVEL_1, LEVEL_2) else None

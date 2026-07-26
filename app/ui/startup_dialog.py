@@ -14,7 +14,6 @@ from ..core.learning_profiles import (
 )
 from .ui_theme import (
     DEFAULT_THEME,
-    THEMES,
     apply_window_theme,
     get_theme,
     normalize_theme_key,
@@ -568,10 +567,7 @@ def ask_data_source_dialog(recent_store):
 
     def _on_theme_changed():
         nonlocal theme_key
-        selected = theme_var.get()
-        if selected not in THEMES:
-            return
-        theme_key = selected
+        theme_key = normalize_theme_key(theme_var.get())
         recent_store.set_theme_key(theme_key)
         _apply_theme()
 
