@@ -1,171 +1,79 @@
-"""Zentrale Theme-Verwaltung für NamenFit."""
+"""Namenfit-specific theme configuration.
+
+Delegates to bw_gui.theming for the canonical theme registry and color math.
+There is no local THEMES dict — all themes come from bw_gui.
+
+``startup_dialog.py`` and ``level_dialog.py`` run a standalone ``ui.Tk()``
+that does not inherit BwBaseWindow's automatic ttk-style registration.  The
+``style_primary_button``, ``style_secondary_button``, ``style_danger_button``
+functions therefore style raw ``tk.Button`` widgets directly and are kept here
+for those two dialogs.
+
+``BG_MAIN``, ``FG_PRIMARY``, ``FG_MUTED`` are module-level constants derived
+from ``DEFAULT_THEME`` at import time.  ``level_dialog.py`` uses them as
+construction-time defaults for labels that are not re-themed on theme switch.
+"""
+
+from __future__ import annotations
 
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
-
 ensure_bw_gui_on_path()
-from bw_gui.theming import THEME_ORDER as BASE_THEME_ORDER
-from bw_gui.theming import get_theme as get_base_theme
 
-
-THEMES = {
-    "slate_indigo": {
-        "label": "Slate & Indigo",
-        "bg_main": "#EEF1F6",
-        "bg_surface": "#FFFFFF",
-        "fg_primary": "#1F2937",
-        "fg_muted": "#5B6472",
-        "accent": "#4F46E5",
-        "accent_hover": "#4338CA",
-        "accent_soft": "#DDE1FF",
-        "danger": "#A73B3B",
-        "success": "#1F8F3A",
-        "error": "#A73B3B",
-        "border": "#C7CFDD",
-    },
-    "forest_moss": {
-        "label": "Forest & Moss",
-        "bg_main": "#EEF3EF",
-        "bg_surface": "#FAFCFA",
-        "fg_primary": "#21322A",
-        "fg_muted": "#587265",
-        "accent": "#3E7A5D",
-        "accent_hover": "#33664E",
-        "accent_soft": "#D7E6DD",
-        "danger": "#A14D45",
-        "success": "#2C8A4D",
-        "error": "#A14D45",
-        "border": "#BDD1C5",
-    },
-    "sand_terracotta": {
-        "label": "Sand & Terracotta",
-        "bg_main": "#F5EFE6",
-        "bg_surface": "#FFF9F3",
-        "fg_primary": "#3B3129",
-        "fg_muted": "#7A6A5E",
-        "accent": "#B8634F",
-        "accent_hover": "#A45443",
-        "accent_soft": "#EBD8CC",
-        "danger": "#9B4A3B",
-        "success": "#3D8D3D",
-        "error": "#9B4A3B",
-        "border": "#D9C7B8",
-    },
-    "midnight_cyan": {
-        "label": "Midnight & Cyan",
-        "bg_main": "#1E252D",
-        "bg_surface": "#26313C",
-        "fg_primary": "#EAF1F7",
-        "fg_muted": "#B8C7D4",
-        "accent": "#18A7C9",
-        "accent_hover": "#1286A2",
-        "accent_soft": "#2F3E4A",
-        "danger": "#E08A7E",
-        "success": "#4BCB74",
-        "error": "#E08A7E",
-        "border": "#435564",
-    },
-    "lavender_graphite": {
-        "label": "Lavender & Graphite",
-        "bg_main": "#F2F1F8",
-        "bg_surface": "#FCFBFF",
-        "fg_primary": "#302D39",
-        "fg_muted": "#666174",
-        "accent": "#6E5BC7",
-        "accent_hover": "#5946B1",
-        "accent_soft": "#E0DAF6",
-        "danger": "#A84A66",
-        "success": "#2F8A4F",
-        "error": "#A84A66",
-        "border": "#CBC4E7",
-    },
-    "obsidian_gold": {
-        "label": "Obsidian & Gold",
-        "bg_main": "#1C1D1F",
-        "bg_surface": "#242629",
-        "fg_primary": "#F3E9D2",
-        "fg_muted": "#C7BDA8",
-        "accent": "#C9A34A",
-        "accent_hover": "#B28E3E",
-        "accent_soft": "#34312A",
-        "danger": "#D9886B",
-        "success": "#6CCB6C",
-        "error": "#D9886B",
-        "border": "#4A4740",
-    },
-}
-
-THEME_ORDER = [
-    "slate_indigo",
-    "forest_moss",
-    "sand_terracotta",
-    "midnight_cyan",
-    "lavender_graphite",
-    "obsidian_gold",
-]
-
-
-def _map_base_theme_to_namenfit(base: dict[str, str], fallback_key: str) -> dict[str, str]:
-    """Map shared theme contract keys to Namenfit's local theme shape."""
-
-    return {
-        "label": str(base.get("label", fallback_key)),
-        "bg_main": str(base["bg_main"]),
-        "bg_surface": str(base["bg_surface"]),
-        "fg_primary": str(base["fg_primary"]),
-        "fg_muted": str(base["fg_muted"]),
-        "accent": str(base["accent"]),
-        "accent_hover": str(base.get("accent_hover", base["accent"])),
-        "accent_soft": str(base["accent_soft"]),
-        "danger": str(base.get("danger", "#A73B3B")),
-        "success": str(base.get("success", "#2F8A4F")),
-        "error": str(base.get("error", base.get("danger", "#A73B3B"))),
-        "border": str(base["border"]),
-    }
-
-
-def _merge_base_theme_registry() -> None:
-    merged_order: list[str] = []
-    seen: set[str] = set()
-
-    for theme_key in THEME_ORDER:
-        if theme_key not in seen:
-            merged_order.append(theme_key)
-            seen.add(theme_key)
-
-    for theme_key in BASE_THEME_ORDER:
-        if theme_key in seen:
-            continue
-        base = get_base_theme(theme_key)
-        THEMES.setdefault(theme_key, _map_base_theme_to_namenfit(base, theme_key))
-        merged_order.append(theme_key)
-        seen.add(theme_key)
-
-    THEME_ORDER[:] = merged_order
-
-
-_merge_base_theme_registry()
+from bw_gui.runtime import ui
+from bw_gui.runtime.platform import apply_window_chrome_theme
+from bw_gui.theming import (
+    THEME_ORDER,
+    get_theme as _bw_get_theme,
+    is_dark_color,
+    normalize_theme_key as _normalize,
+)
 
 DEFAULT_THEME = "sand_terracotta"
 
 
-def normalize_theme_key(theme_key=None):
-    """Liefert einen gültigen Theme-Key oder das Default-Theme."""
+def normalize_theme_key(theme_key=None) -> str:
+    """Return *theme_key* if known in bw_gui's registry, otherwise ``DEFAULT_THEME``.
 
-    return theme_key if theme_key in THEMES else DEFAULT_THEME
+    Delegates to bw_gui so the full 13-theme registry is used for validation.
+    Re-exported so ``app_state_store.py`` and ``progress.py`` do not need to
+    change their import statements.
+    """
+    return _normalize(theme_key)
 
 
-def get_theme(theme_key=None):
-    key = normalize_theme_key(theme_key)
-    return THEMES[key]
+def get_theme(theme_key=None) -> dict:
+    """Return the fully-resolved theme dict for *theme_key*.
+
+    Wraps ``bw_gui.theming.get_theme()``, which fills semantic defaults and
+    applies intensity scaling.  Re-exported so ``ui.py``, ``startup_dialog.py``,
+    and other files that import ``get_theme`` from this module continue to work.
+    """
+    return _bw_get_theme(theme_key)
 
 
-def apply_window_theme(window, theme_key=None):
+def apply_window_theme(window, theme_key=None) -> None:
+    """Set *window*'s background to ``bg_main`` and apply Windows title-bar chrome.
+
+    The chrome call is a no-op on non-Windows platforms.  Called by ``QuizApp``
+    on every theme switch and from the startup/level dialogs at open time.
+    """
     theme = get_theme(theme_key)
     window.configure(bg=theme["bg_main"])
+    apply_window_chrome_theme(window, prefer_dark=is_dark_color(str(theme["bg_main"])))
 
 
-def style_primary_button(button, theme_key=None):
+def style_primary_button(button, theme_key=None) -> None:
+    """Apply primary-action colors to a raw ``tk.Button``.
+
+    Used by ``startup_dialog.py`` which runs in a standalone ``ui.Tk()`` that
+    does not go through BwBaseWindow's ttk-style registration.  ``QuizApp``
+    widgets use ``ttk.Button(style='PrimaryAction.TButton')`` instead.
+
+    Args:
+        button:    A ``tk.Button`` widget to configure in-place.
+        theme_key: Active theme key; falls back to bw_gui's DEFAULT_THEME.
+    """
     theme = get_theme(theme_key)
     button.configure(
         bg=theme["accent"],
@@ -180,7 +88,16 @@ def style_primary_button(button, theme_key=None):
     )
 
 
-def style_secondary_button(button, theme_key=None):
+def style_secondary_button(button, theme_key=None) -> None:
+    """Apply secondary-action colors to a raw ``tk.Button``.
+
+    Same rationale as ``style_primary_button`` — used for ``startup_dialog.py``
+    widgets that cannot use ttk styles.
+
+    Args:
+        button:    A ``tk.Button`` widget to configure in-place.
+        theme_key: Active theme key.
+    """
     theme = get_theme(theme_key)
     button.configure(
         bg=theme["accent_soft"],
@@ -195,13 +112,23 @@ def style_secondary_button(button, theme_key=None):
     )
 
 
-def style_danger_button(button, theme_key=None):
+def style_danger_button(button, theme_key=None) -> None:
+    """Apply danger-action colors to a raw ``tk.Button``.
+
+    Same rationale as ``style_primary_button``.  The background stays
+    ``accent_soft`` (not the full danger color) to keep the startup dialog
+    visually calm; the ``danger`` color is used for the foreground text only.
+
+    Args:
+        button:    A ``tk.Button`` widget to configure in-place.
+        theme_key: Active theme key.
+    """
     theme = get_theme(theme_key)
     button.configure(
         bg=theme["accent_soft"],
-        fg=theme["danger"],
+        fg=theme.get("danger", "#A73B3B"),
         activebackground=theme["border"],
-        activeforeground=theme["danger"],
+        activeforeground=theme.get("danger", "#A73B3B"),
         relief="flat",
         bd=0,
         padx=6,
@@ -210,33 +137,32 @@ def style_danger_button(button, theme_key=None):
     )
 
 
-def style_entry(entry, theme_key=None):
-    theme = get_theme(theme_key)
-    entry.configure(
-        bg=theme["bg_surface"],
-        fg=theme["fg_primary"],
-        insertbackground=theme["fg_primary"],
-        relief="flat",
-        highlightthickness=1,
-        highlightbackground=theme["border"],
-        highlightcolor=theme["accent"],
-    )
+def populate_theme_menu(view_menu, theme_var, on_theme_changed) -> None:
+    """Fill *view_menu* with a radio button for every available theme.
 
+    Uses bw_gui's ``THEME_ORDER`` so the full 13-theme list (plus any program-
+    specific themes registered at import time) is shown.  Called by
+    ``startup_dialog.py`` which manages its own tk.Menu.
 
-def populate_theme_menu(view_menu, theme_var, on_theme_changed):
-    """Befüllt ein Tkinter-Menu mit einheitlichen Theme-Radiobuttons."""
-
+    Args:
+        view_menu:        A ``tk.Menu`` instance to populate.
+        theme_var:        A ``tk.StringVar`` that holds the current theme key.
+        on_theme_changed: Callback invoked when the user selects a theme.
+    """
     for theme_key in THEME_ORDER:
+        theme = get_theme(theme_key)
         view_menu.add_radiobutton(
-            label=THEMES[theme_key]["label"],
+            label=str(theme.get("label", theme_key)),
             variable=theme_var,
             value=theme_key,
             command=on_theme_changed,
         )
 
 
-# Rückwärtskompatible Konstanten für bestehende Aufrufe ohne Theme-Key
-_DEFAULT = get_theme(DEFAULT_THEME)
-BG_MAIN = _DEFAULT["bg_main"]
-FG_PRIMARY = _DEFAULT["fg_primary"]
-FG_MUTED = _DEFAULT["fg_muted"]
+# ── Construction-time constants (used by level_dialog.py) ──────────────────
+# level_dialog.py creates labels at construction time without live re-theming.
+# These constants give sensible initial values derived from DEFAULT_THEME.
+_default = get_theme(DEFAULT_THEME)
+BG_MAIN = _default["bg_main"]
+FG_PRIMARY = _default["fg_primary"]
+FG_MUTED = _default["fg_muted"]

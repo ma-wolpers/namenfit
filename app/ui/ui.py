@@ -88,9 +88,6 @@ from .ui_theme import (
     apply_window_theme,
     get_theme,
     normalize_theme_key,
-    style_entry,
-    style_primary_button,
-    style_secondary_button,
 )
 
 
@@ -912,16 +909,6 @@ class QuizApp(BwBaseWindow):
         self.feedback_label.configure(bg=theme["bg_main"], fg=theme["fg_primary"])
         self.debug_label.configure(bg=theme["bg_main"], fg=theme["fg_muted"])
 
-        style_entry(self.name_entry, self.theme_key)
-        style_entry(self.group_entry, self.theme_key)
-        style_entry(self.behind_entry, self.theme_key)
-        style_entry(self.opposite_entry, self.theme_key)
-        style_entry(self.front_entry, self.theme_key)
-
-        style_primary_button(self.solve_button, self.theme_key)
-        style_primary_button(self.next_button, self.theme_key)
-        style_secondary_button(self.typo_button, self.theme_key)
-        style_secondary_button(self.switch_level_button, self.theme_key)
 
     def _build_widgets(self, parent=None):
         """Erstellt das UI in logisch getrennten Blöcken."""
@@ -940,8 +927,7 @@ class QuizApp(BwBaseWindow):
 
         # Name-Eingabe (für Foto-Modi)
         self.name_label = ui.Label(_p, text="Name:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.name_entry = ui.Entry(_p, font=("Arial", 14))
-        style_entry(self.name_entry, self.theme_key)
+        self.name_entry = widgets.Entry(_p, font=("Arial", 14))
 
         self.group_label = ui.Label(
             _p,
@@ -951,50 +937,46 @@ class QuizApp(BwBaseWindow):
             fg=FG_PRIMARY,
         )
         self.group_label.pack()
-        self.group_entry = ui.Entry(_p, font=("Arial", 14))
-        style_entry(self.group_entry, self.theme_key)
+        self.group_entry = widgets.Entry(_p, font=("Arial", 14))
         self.group_entry.pack(pady=(0, 8))
 
         self.level2_frame = ui.Frame(_p, bg=BG_MAIN)
         self.level2_frame.pack(pady=(0, 8))
 
         self.behind_label = ui.Label(self.level2_frame, text="Dahinter:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.behind_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
-        style_entry(self.behind_entry, self.theme_key)
+        self.behind_entry = widgets.Entry(self.level2_frame, font=("Arial", 14))
         self.opposite_label = ui.Label(self.level2_frame, text="Gegenüber:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.opposite_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
-        style_entry(self.opposite_entry, self.theme_key)
+        self.opposite_entry = widgets.Entry(self.level2_frame, font=("Arial", 14))
         self.front_label = ui.Label(self.level2_frame, text="Davor:", font=("Arial", 12), bg=BG_MAIN, fg=FG_PRIMARY)
-        self.front_entry = ui.Entry(self.level2_frame, font=("Arial", 14))
-        style_entry(self.front_entry, self.theme_key)
+        self.front_entry = widgets.Entry(self.level2_frame, font=("Arial", 14))
 
-        self.solve_button = ui.Button(_p, text="Auflösen", command=self.solve)
-        style_primary_button(self.solve_button, self.theme_key)
+        self.solve_button = widgets.Button(_p, text="Auflösen", style="PrimaryAction.TButton", cursor="hand2", command=self.solve)
         self.solve_button.pack(pady=(2, 2))
         self._attach_hover_help(self.solve_button, label="Aktuelle Aufgabe aufloesen", shortcut="Enter")
 
-        self.typo_button = ui.Button(
+        self.typo_button = widgets.Button(
             _p,
             text="Ups, vertippt",
+            style="SecondaryAction.TButton",
+            cursor="hand2",
             command=self.mark_name_typo,
         )
-        style_secondary_button(self.typo_button, self.theme_key)
         self.typo_button.pack(pady=(0, 4))
         self.typo_button.pack_forget()
         self._attach_hover_help(self.typo_button, label="Vertipper markieren", shortcut="Backspace")
 
-        self.next_button = ui.Button(_p, text="Weiter", command=self.next_person)
-        style_primary_button(self.next_button, self.theme_key)
+        self.next_button = widgets.Button(_p, text="Weiter", style="PrimaryAction.TButton", cursor="hand2", command=self.next_person)
         self.next_button.pack(pady=5)
         self.next_button.pack_forget()
         self._attach_hover_help(self.next_button, label="Naechste Person laden", shortcut="Enter")
 
-        self.switch_level_button = ui.Button(
+        self.switch_level_button = widgets.Button(
             _p,
             text="Level wechseln",
+            style="SecondaryAction.TButton",
+            cursor="hand2",
             command=self.switch_level,
         )
-        style_secondary_button(self.switch_level_button, self.theme_key)
         self.switch_level_button.pack(pady=(2, 6))
         self._attach_hover_help(self.switch_level_button, label="Trainingslevel wechseln", shortcut=None)
 
