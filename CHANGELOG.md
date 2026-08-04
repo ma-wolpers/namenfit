@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Lokale Theme-Daten entfernt; Quiz-Widgets auf ttk-Äquivalente umgestellt, damit Styling vollständig über den zentralen `bw_gui`-Theme-Mechanismus läuft.
+- `QuizApp` auf `BwBaseWindow` aus `bw_gui` umgestellt; das redundante lokale Themeeinstellungs-Feld entfiel.
 - Menueleiste auf den neuen zentralen bw-gui-Standardbaukasten umgestellt: Kernrubriken laufen jetzt konsistent ueber `Datei`, `Bearbeiten`, `Ansicht`, `Hilfe`; die app-spezifischen Menues `Lernen`, `Debug`, `Ton` und `Sitzplan` bleiben als Erweiterungssektionen erhalten.
 - Settings-Flow auf einen zentralen bw-gui-Orchestrator umgestellt (`SettingsDialogOrchestrator`), damit Theme-/Lern-/Debug-/Ton-/Sitzplan-Einstellungen ueber einen einheitlichen Dialog-Einstiegspfad laufen.
 - AI guardrails now emit non-blocking local warnings when configured core keyboard intents (for example quiz enter/space/typo, settings toggle, debug overlay/offline, escape) are present but matching shortcut binding markers are missing.
