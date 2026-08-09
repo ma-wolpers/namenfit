@@ -3,7 +3,7 @@
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import ui
+from bw_gui.runtime import WindowShortcutBinder, ui
 
 from ..core.models import LEVEL_1, LEVEL_2
 from .ui_theme import BG_MAIN, FG_PRIMARY, apply_window_theme, style_primary_button
@@ -74,6 +74,20 @@ def ask_level(root=None, current_level=None):
     start_button = ui.Button(level_win, text="Start", command=confirm)
     style_primary_button(start_button)
     start_button.pack(pady=(10, 12))
+
+    shortcuts = WindowShortcutBinder(level_win)
+    shortcuts.bind(
+        "<Return>",
+        lambda _event: (confirm(), "break")[1],
+        binding_id="level.confirm.enter",
+        intent="level.confirm",
+    )
+    shortcuts.bind(
+        "<space>",
+        lambda _event: (confirm(), "break")[1],
+        binding_id="level.confirm.space",
+        intent="level.confirm",
+    )
 
     level_win.protocol("WM_DELETE_WINDOW", on_close)
     level_win.update_idletasks()

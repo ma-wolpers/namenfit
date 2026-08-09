@@ -8,7 +8,7 @@ from io import BytesIO
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import BwBaseWindow, ui, widgets
+from bw_gui.runtime import BwBaseWindow, WindowShortcutBinder, ui, widgets
 from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator
 from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
 from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
@@ -57,8 +57,6 @@ from bw_gui.contracts.keybinding import (
     UI_MODE_EDITOR,
     UI_MODE_GLOBAL,
     UI_MODE_OFFLINE,
-    KeyBindingDefinition,
-    KeybindingRegistry,
     KeybindingRuntimeContext,
 )
 from bw_gui.contracts.hsm import (
@@ -170,7 +168,6 @@ class QuizApp(BwBaseWindow):
         self.session_seen_names = set()
         self.session_prompt_results = {}
         self.session_confusions = {}
-        self._runtime_shortcuts = KeybindingRegistry()
         self._hsm_contract = build_ui_hsm_contract(intents=_known_ui_intents())
         self._popup_registry = PopupPolicyRegistry()
         self._popup_registry.register_policy(PopupPolicy(policy_id="dialog.modal", kind=POPUP_KIND_MODAL))
@@ -244,6 +241,14 @@ class QuizApp(BwBaseWindow):
         # so the title bar and view-menu radios start in sync with self.theme_key.
         BwBaseWindow.apply_theme(self, self.theme_key)
         self._apply_theme()
+        self._shortcuts = WindowShortcutBinder(
+            self.root,
+            hsm_contract=self._hsm_contract,
+            is_text_input=self._is_editable_widget,
+            dialog_open=self._dialog_open_for_shortcuts,
+            offline=lambda: self._shortcut_debug_offline,
+            on_dispatch=self._record_laufkern_intent_dispatch,
+        )
         self._bind_shortcuts()
         self._apply_level_widgets()
         self.next_person()
@@ -1014,7 +1019,7 @@ class QuizApp(BwBaseWindow):
     def _bind_shortcuts(self):
         """Bindet Enter/Leertaste an die jeweils passende Aktion."""
 
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Return>",
             self._on_enter,
             binding_id="global.enter",
@@ -1022,7 +1027,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<KP_Enter>",
             self._on_enter,
             binding_id="global.enter.numpad",
@@ -1030,15 +1035,15 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<space>",
             self._on_space,
             binding_id="global.space",
             intent=UiIntent.QUIZ_SPACE,
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=False,
+            allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<BackSpace>",
             self._on_backspace,
             binding_id="global.backspace",
@@ -1046,7 +1051,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Alt-s>",
             self._on_alt_s,
             binding_id="global.alt-s",
@@ -1054,7 +1059,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Alt-S>",
             self._on_alt_s,
             binding_id="global.alt-s.upper",
@@ -1062,7 +1067,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Control-Shift-d>",
             lambda _event: self._open_shortcut_runtime_debug_dialog(),
             binding_id="debug.runtime-overlay",
@@ -1070,7 +1075,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Control-Shift-o>",
             lambda _event: self._toggle_shortcut_runtime_offline(),
             binding_id="debug.runtime-offline",
@@ -1078,7 +1083,7 @@ class QuizApp(BwBaseWindow):
             modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
             allow_when_text_input=True,
         )
-        self._bind_runtime_shortcut(
+        self._shortcuts.bind(
             "<Escape>",
             self._on_escape_runtime,
             binding_id="global.escape",
@@ -1125,94 +1130,14 @@ class QuizApp(BwBaseWindow):
             self._popup_registry.close_popup(popup_id)
             self._tracked_popup_ids.discard(popup_id)
 
-    def _build_runtime_context(self, event=None):
+    def _dialog_open_for_shortcuts(self):
         self._sync_popup_sessions_from_windows()
-        focused_widget = getattr(event, "widget", None) or self.root.focus_get()
-        text_input_focused = self._is_editable_widget(focused_widget)
-        dialog_open = self._popup_registry.has_mode_blocking_popup()
-        offline = bool(self._shortcut_debug_offline)
-
-        if offline:
-            active_mode = UI_MODE_OFFLINE
-        elif dialog_open:
-            active_mode = UI_MODE_DIALOG
-        elif text_input_focused:
-            active_mode = UI_MODE_EDITOR
-        else:
-            active_mode = UI_MODE_GLOBAL
-
-        return KeybindingRuntimeContext(
-            active_mode=active_mode,
-            offline=offline,
-            text_input_focused=text_input_focused,
-            dialog_open=dialog_open,
-        )
-
-    def _register_runtime_shortcut(
-        self,
-        *,
-        binding_id,
-        sequence,
-        intent,
-        modes,
-        allow_when_text_input,
-        allow_when_offline=True,
-    ):
-        intent_ok, _intent_reason = self._hsm_contract.validate_intent(intent)
-        if not intent_ok:
-            raise ValueError(f"Unknown runtime shortcut intent: {intent}")
-
-        definition = KeyBindingDefinition(
-            binding_id=binding_id,
-            sequence=sequence,
-            intent=intent,
-            modes=modes,
-            allow_when_text_input=allow_when_text_input,
-            allow_when_offline=allow_when_offline,
-        )
-        self._runtime_shortcuts.register(definition)
-        return definition
-
-    def _bind_runtime_shortcut(
-        self,
-        sequence,
-        handler,
-        *,
-        binding_id,
-        intent,
-        modes,
-        allow_when_text_input=False,
-        allow_when_offline=True,
-    ):
-        definition = self._register_runtime_shortcut(
-            binding_id=binding_id,
-            sequence=sequence,
-            intent=intent,
-            modes=modes,
-            allow_when_text_input=allow_when_text_input,
-            allow_when_offline=allow_when_offline,
-        )
-
-        def _wrapped(event):
-            context = self._build_runtime_context(event)
-            can_execute, _reason = self._runtime_shortcuts.evaluate_runtime(definition, context)
-            if not can_execute:
-                return None
-            try:
-                result = handler(event)
-            except Exception:
-                self._record_laufkern_intent_dispatch(intent, success=False)
-                raise
-
-            self._record_laufkern_intent_dispatch(intent, success=True)
-            return result
-
-        self.root.bind(sequence, _wrapped)
+        return self._popup_registry.has_mode_blocking_popup()
 
     def _build_laufkern_manifest(self):
         """Build one declarative LaufKern manifest from registered runtime shortcuts."""
 
-        return build_runtime_shortcut_manifest(self._runtime_shortcuts)
+        return build_runtime_shortcut_manifest(self._shortcuts.registry)
 
     def _summarize_laufkern_reachability(self, *, context: KeybindingRuntimeContext) -> str:
         """Return compact LaufKern reachability summary for current runtime state."""
@@ -1390,7 +1315,7 @@ class QuizApp(BwBaseWindow):
         if table is None:
             return
 
-        context = self._build_runtime_context()
+        context = self._shortcuts.build_context()
         if self._shortcut_runtime_debug_context_var is not None:
             self._shortcut_runtime_debug_context_var.set(
                 f"mode={context.active_mode} | offline={context.offline} | dialog={context.dialog_open} | text-focus={context.text_input_focused}"
@@ -1402,10 +1327,10 @@ class QuizApp(BwBaseWindow):
         active_count = 0
         disabled_count = 0
         for mode in (UI_MODE_GLOBAL, UI_MODE_EDITOR, UI_MODE_DIALOG, UI_MODE_OFFLINE):
-            for definition in self._runtime_shortcuts.all():
+            for definition in self._shortcuts.registry.all():
                 if mode not in definition.modes and UI_MODE_GLOBAL not in definition.modes:
                     continue
-                can_execute, reason = self._runtime_shortcuts.evaluate_runtime(
+                can_execute, reason = self._shortcuts.registry.evaluate_runtime(
                     definition,
                     context,
                     active_mode_override=mode,
@@ -1509,6 +1434,7 @@ class QuizApp(BwBaseWindow):
             self.solve_button.pack_forget()
             self.next_button.config(text="Zurück zum Startdialog")
             self.next_button.pack(pady=5)
+            self.root.focus_set()
             return
 
         if self.name_typo_available:
@@ -1535,9 +1461,10 @@ class QuizApp(BwBaseWindow):
         self.solve_button.pack_forget()
         self.next_button.config(text="Weiter")
         self.next_button.pack(pady=5)
+        self.root.focus_set()
 
     def _on_enter(self, _event):
-        """Enter löst die aktuelle Aufgabe auf (nur im Lösungsmodus)."""
+        """Enter löst die aktuelle Aufgabe auf oder springt weiter (wenn bereits gelöst)."""
 
         if self.round_finished:
             self._close_round_and_return_to_start()
@@ -1546,7 +1473,9 @@ class QuizApp(BwBaseWindow):
         if self.awaiting_solution:
             self.solve()
             return "break"
-        return None
+
+        self.next_person()
+        return "break"
 
     def _on_space(self, _event):
         """Leertaste springt weiter (nur nach Auflösung)."""
