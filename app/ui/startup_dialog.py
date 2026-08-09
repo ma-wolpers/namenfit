@@ -1,4 +1,4 @@
-﻿"""Startdialog fÃ¼r Quellauswahl inkl. 'Zuletzt geÃ¶ffnet'."""
+﻿"""Startdialog für Quellauswahl inkl. 'Zuletzt geöffnet'."""
 
 import os
 
@@ -30,7 +30,7 @@ from bw_gui.runtime import ui
 
 
 def ask_data_source_dialog(recent_store):
-    """Ã–ffnet den Startdialog und liefert eine Datenquellen-Auswahl oder None."""
+    """Öffnet den Startdialog und liefert eine Datenquellen-Auswahl oder None."""
 
     dialog = ui.Tk()
     apply_window_icon(dialog)
@@ -175,7 +175,7 @@ def ask_data_source_dialog(recent_store):
 
     heading_label = ui.Label(
         container,
-        text="SitzplÃ¤ne und/oder Fotos auswÃ¤hlen:",
+        text="Sitzpläne und/oder Fotos auswählen:",
         font=("Arial", 12, "bold"),
         bg=_theme()["bg_main"],
         fg=_theme()["fg_primary"],
@@ -186,7 +186,7 @@ def ask_data_source_dialog(recent_store):
     prompt_frame.pack(fill="x", pady=(0, 8))
     prompt_label = ui.Label(
         prompt_frame,
-        text="RundenlÃ¤nge:",
+        text="Rundenlänge:",
         width=12,
         anchor="w",
         bg=_theme()["bg_main"],
@@ -240,7 +240,7 @@ def ask_data_source_dialog(recent_store):
         fg=_theme()["fg_primary"],
     )
     csv_label.pack(side="left")
-    csv_name_var = ui.StringVar(value="(nicht gewÃ¤hlt)")
+    csv_name_var = ui.StringVar(value="(nicht gewählt)")
     csv_name_label = ui.Label(
         csv_frame,
         textvariable=csv_name_var,
@@ -254,12 +254,12 @@ def ask_data_source_dialog(recent_store):
     def _set_csv_label():
         csv_paths = result["csv_paths"]
         if not csv_paths:
-            csv_name_var.set("(nicht gewÃ¤hlt)")
+            csv_name_var.set("(nicht gewählt)")
             return
         if len(csv_paths) == 1:
             csv_name_var.set(os.path.basename(csv_paths[0]))
             return
-        csv_name_var.set(f"{len(csv_paths)} Dateien ausgewÃ¤hlt")
+        csv_name_var.set(f"{len(csv_paths)} Dateien ausgewählt")
 
     csv_selected_frame = ui.Frame(container, bg=_theme()["bg_main"])
     csv_selected_frame.pack(fill="x", pady=(0, 6))
@@ -283,7 +283,7 @@ def ask_data_source_dialog(recent_store):
             row.pack(fill="x", pady=(0, 2))
             ui.Label(
                 row,
-                text=f"â€¢ {os.path.basename(csv_path)}",
+                text=f"• {os.path.basename(csv_path)}",
                 anchor="w",
                 bg=_theme()["bg_main"],
                 fg=_theme()["fg_muted"],
@@ -299,7 +299,7 @@ def ask_data_source_dialog(recent_store):
 
     def choose_csv():
         dialog_kwargs = {
-            "title": "CSV-Dateien auswÃ¤hlen",
+            "title": "CSV-Dateien auswählen",
             "filetypes": [("CSV Dateien", "*.csv")],
         }
         initial_csv_dir = recent_store.get_last_dialog_dir("csv_source")
@@ -314,7 +314,7 @@ def ask_data_source_dialog(recent_store):
             _set_csv_label()
             _render_csv_selected_items()
 
-    choose_csv_button = ui.Button(csv_frame, text="WÃ¤hlenâ€¦", command=choose_csv)
+    choose_csv_button = ui.Button(csv_frame, text="Wählen…", command=choose_csv)
     style_secondary_button(choose_csv_button, theme_key)
     choose_csv_button.pack(side="right")
 
@@ -329,7 +329,7 @@ def ask_data_source_dialog(recent_store):
         fg=_theme()["fg_primary"],
     )
     photo_label.pack(side="left")
-    photo_name_var = ui.StringVar(value="(nicht gewÃ¤hlt)")
+    photo_name_var = ui.StringVar(value="(nicht gewählt)")
     photo_name_label = ui.Label(
         photo_frame,
         textvariable=photo_name_var,
@@ -343,13 +343,13 @@ def ask_data_source_dialog(recent_store):
     def _set_photo_label():
         folders = result["photo_folders"]
         if not folders:
-            photo_name_var.set("(nicht gewÃ¤hlt)")
+            photo_name_var.set("(nicht gewählt)")
             return
         if len(folders) == 1:
             folder = folders[0]
             photo_name_var.set(os.path.basename(folder.rstrip("\\/")) or folder)
             return
-        photo_name_var.set(f"{len(folders)} Ordner ausgewÃ¤hlt")
+        photo_name_var.set(f"{len(folders)} Ordner ausgewählt")
 
     photo_selected_frame = ui.Frame(container, bg=_theme()["bg_main"])
     photo_selected_frame.pack(fill="x", pady=(0, 8))
@@ -374,7 +374,7 @@ def ask_data_source_dialog(recent_store):
             label = os.path.basename(folder.rstrip("\\/")) or folder
             ui.Label(
                 row,
-                text=f"â€¢ {label}",
+                text=f"• {label}",
                 anchor="w",
                 bg=_theme()["bg_main"],
                 fg=_theme()["fg_muted"],
@@ -389,7 +389,7 @@ def ask_data_source_dialog(recent_store):
             remove_button.pack(side="right")
 
     def add_photo_folder():
-        dialog_kwargs = {"title": "Foto-Ordner auswÃ¤hlen"}
+        dialog_kwargs = {"title": "Foto-Ordner auswählen"}
         initial_photo_dir = recent_store.get_last_dialog_dir("photo_source")
         if initial_photo_dir:
             dialog_kwargs["initialdir"] = initial_photo_dir
@@ -418,7 +418,7 @@ def ask_data_source_dialog(recent_store):
     style_secondary_button(clear_photos_button, theme_key)
     clear_photos_button.pack(side="right")
     add_photo_button = ui.Button(
-        photo_frame, text="HinzufÃ¼genâ€¦", command=add_photo_folder
+        photo_frame, text="Hinzufügen…", command=add_photo_folder
     )
     style_secondary_button(add_photo_button, theme_key)
     add_photo_button.pack(side="right", padx=(0, 6))
@@ -427,7 +427,7 @@ def ask_data_source_dialog(recent_store):
         if not result["csv_paths"] and not result["photo_folders"]:
             messagebox.showwarning(
                 "Hinweis",
-                "Bitte mindestens eine CSV-Datei oder einen Foto-Ordner auswÃ¤hlen.",
+                "Bitte mindestens eine CSV-Datei oder einen Foto-Ordner auswählen.",
             )
             return False
         return True
@@ -680,7 +680,7 @@ def _build_start_menu(
     file_menu.add_cascade(label="Letzte CSV-Dateien", menu=csv_menu)
     file_menu.add_cascade(label="Letzte Fotoordner", menu=photo_menu)
     file_menu.add_cascade(label="Letzte Kombinationen", menu=combined_menu)
-    file_menu.add_command(label="SchlieÃŸen", command=dialog.quit)
+    file_menu.add_command(label="Schließen", command=dialog.quit)
 
     menu_bar.add_cascade(label="Datei", menu=file_menu, underline=0)
     populate_theme_menu(view_menu, theme_var, on_theme_changed)
@@ -719,7 +719,7 @@ def _build_start_menu(
 
 
 def _populate_recent_simple_menu(menu, entries, label_fn, command_fn):
-    """BefÃ¼llt ein UntermenÃ¼ mit einfachen Path-EintrÃ¤gen oder '(keine)'."""
+    """Befüllt ein Untermenü mit einfachen Path-Einträgen oder '(keine)'."""
 
     valid_entries = [entry for entry in entries if isinstance(entry, str)]
     if not valid_entries:
@@ -733,7 +733,7 @@ def _populate_recent_simple_menu(menu, entries, label_fn, command_fn):
 
 
 def _populate_recent_combined_menu(menu, entries, on_pick_recent):
-    """BefÃ¼llt das Kombi-UntermenÃ¼ aus gespeicherten CSV+Foto-Paaren."""
+    """Befüllt das Kombi-Untermenü aus gespeicherten CSV+Foto-Paaren."""
 
     added = 0
     for entry in entries or []:
