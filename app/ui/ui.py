@@ -85,7 +85,6 @@ from .ui_theme import (
     BG_MAIN,
     FG_MUTED,
     FG_PRIMARY,
-    apply_window_theme,
     get_theme,
     normalize_theme_key,
 )
@@ -240,6 +239,10 @@ class QuizApp(BwBaseWindow):
         self.root = self  # backward-compat alias for all self.root.* calls
         self._build_menu()
         self._build_widgets(parent=frame)
+        # BwBaseWindow never applies chrome/menu theming on its own at construction
+        # time (TkinterAppShell only sets bg + ttk style) — call it explicitly once
+        # so the title bar and view-menu radios start in sync with self.theme_key.
+        BwBaseWindow.apply_theme(self, self.theme_key)
         self._apply_theme()
         self._bind_shortcuts()
         self._apply_level_widgets()
@@ -249,12 +252,15 @@ class QuizApp(BwBaseWindow):
         self._open_settings_dialog()
 
     def apply_theme(self, theme_key: str) -> None:
-        """Called by BwBaseWindow View menu theme radios."""
+        """Called by BwBaseWindow View menu theme radios.
+
+        Only sets theme_var and delegates to _on_theme_changed(), which owns the
+        actual shell/menu/chrome application (via BwBaseWindow.apply_theme()) plus
+        persistence — see _on_theme_changed() docstring.
+        """
         from .ui_theme import normalize_theme_key as nf_normalize
-        _key = nf_normalize(theme_key)
-        self._shell.apply_theme(_key)
         if hasattr(self, "theme_var"):
-            self.theme_var.set(_key)
+            self.theme_var.set(nf_normalize(theme_key))
             self._on_theme_changed()
 
     def _on_shell_close(self) -> bool:
@@ -765,12 +771,18 @@ class QuizApp(BwBaseWindow):
         self._settings_dialog_orchestrator.open(self.root)
 
     def _on_theme_changed(self):
-        self._shell.apply_theme(normalize_theme_key(self.theme_var.get()))  # updates self.theme_key via the shell
+        """Apply a new self.theme_var selection and persist it.
+
+        BwBaseWindow.apply_theme() owns the shared concerns (shell theme storage,
+        view-menu radio refresh, window chrome) and updates self.theme_key as a
+        side effect (read-only property backed by the shell). Everything below
+        is Namenfit-specific: progress persistence, caller notification, tooltip
+        sync, and app widget recoloring (_apply_theme()).
+        """
+        BwBaseWindow.apply_theme(self, normalize_theme_key(self.theme_var.get()))
         self.progress_store.set_theme_key(self.theme_key)
         if callable(self.on_theme_changed_callback):
             self.on_theme_changed_callback(self.theme_key)
-        if self._menu_bar is not None:
-            self._menu_bar.refresh_theme(self.theme_key)
         for tooltip in self._hover_tooltips:
             try:
                 setattr(tooltip, "theme_key", self.theme_key)
@@ -891,10 +903,14 @@ class QuizApp(BwBaseWindow):
         return False
 
     def _apply_theme(self):
-        """Wendet das aktuell gewählte Theme auf alle Widgets an."""
+        """Wendet das aktuell gewählte Theme auf die QuizApp-eigenen Widgets an.
+
+        Fenster-Hintergrund und Titlebar-Chrome laufen über BwBaseWindow.apply_theme()
+        (aufgerufen in build_content() und _on_theme_changed()) — hier werden nur die
+        Nicht-ttk-Widgets von QuizApp selbst eingefärbt.
+        """
 
         theme = get_theme(self.theme_key)
-        apply_window_theme(self.root, self.theme_key)
 
         self.photo_label.configure(bg=theme["bg_main"])
         self.prompt_label.configure(bg=theme["bg_main"], fg=theme["fg_primary"])
