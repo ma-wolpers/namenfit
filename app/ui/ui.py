@@ -133,7 +133,7 @@ class QuizApp(BwBaseWindow):
         self.on_debug_options_changed_callback = on_debug_options_changed
         self.on_sound_options_changed_callback = on_sound_options_changed
         self.on_level2_setting_changed_callback = on_level2_setting_changed
-        self.theme_key = normalize_theme_key(initial_theme_key or self.progress_store.get_theme_key())
+        resolved_theme_key = normalize_theme_key(initial_theme_key or self.progress_store.get_theme_key())
         self.people = people
         self.grid = grid
         self.level = level
@@ -217,9 +217,12 @@ class QuizApp(BwBaseWindow):
             geometry=resolved_shell_config.geometry,
             min_width=resolved_shell_config.min_width,
             min_height=resolved_shell_config.min_height,
-            theme_key=self.theme_key,
+            theme_key=resolved_theme_key,
             on_close=self._on_shell_close,
         )
+        # self.theme_key is a read-only BwBaseWindow property backed by the shell
+        # from here on (set above via theme_key=resolved_theme_key); it must not be
+        # assigned to directly.
 
     def build_menu(self) -> list:
         return [
@@ -762,7 +765,7 @@ class QuizApp(BwBaseWindow):
         self._settings_dialog_orchestrator.open(self.root)
 
     def _on_theme_changed(self):
-        self.theme_key = normalize_theme_key(self.theme_var.get())
+        self._shell.apply_theme(normalize_theme_key(self.theme_var.get()))  # updates self.theme_key via the shell
         self.progress_store.set_theme_key(self.theme_key)
         if callable(self.on_theme_changed_callback):
             self.on_theme_changed_callback(self.theme_key)

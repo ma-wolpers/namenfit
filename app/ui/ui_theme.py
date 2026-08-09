@@ -22,12 +22,8 @@ ensure_bw_gui_on_path()
 
 from bw_gui.runtime import ui
 from bw_gui.runtime.platform import apply_window_chrome_theme
-from bw_gui.theming import (
-    THEME_ORDER,
-    get_theme as _bw_get_theme,
-    is_dark_color,
-    normalize_theme_key as _normalize,
-)
+from bw_gui.theming import THEME_ORDER, normalize_theme_key as _normalize
+from bw_gui.theming._theme_manager import get_theme as _bw_get_theme, is_dark_color
 
 DEFAULT_THEME = "sand_terracotta"
 

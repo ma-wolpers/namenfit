@@ -11,6 +11,10 @@ The format is based on Keep a Changelog.
 - New shortcut runtime debug popup in the Debug menu with compact active/disabled diagnostics and offline simulation (`Strg+Shift+D`, `Strg+Shift+O`).
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
+### Fixed
+- Namenfit stürzte potenziell beim Start des Quiz-Fensters ab: `ui_theme.py` importierte `get_theme`/`is_dark_color` noch aus dem inzwischen privatisierten `bw_gui.theming`-Modul (`ImportError`), und `QuizApp` wies `self.theme_key` nach der `BwBaseWindow`-Migration weiterhin direkt zu, obwohl es seither eine schreibgeschützte Property ist (`AttributeError`). `bw_libs/shared_gui_core.py` enthielt zusätzlich einen fehlenden `r`-Prefix am Docstring, der bei einem Windows-Pfad mit Backslashes einen `SyntaxError` auslöste und den Absturz noch vor dem eigentlichen Theme-Import verursachte.
+- `bw_libs/shared_gui_core.py`: Docstring als Raw-String (`r"""`) markiert, damit der enthaltene Windows-Pfad nicht als ungültige Unicode-Escape-Sequenz geparst wird.
+
 ### Changed
 - Lokale Theme-Daten entfernt; Quiz-Widgets auf ttk-Äquivalente umgestellt, damit Styling vollständig über den zentralen `bw_gui`-Theme-Mechanismus läuft.
 - `QuizApp` auf `BwBaseWindow` aus `bw_gui` umgestellt; das redundante lokale Themeeinstellungs-Feld entfiel.
