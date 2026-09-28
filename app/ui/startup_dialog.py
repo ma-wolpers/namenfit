@@ -26,6 +26,7 @@ from .window_identity import apply_window_icon
 
 
 ensure_bw_gui_on_path()
+from bw_gui.menu import add_menu_switch
 from bw_gui.runtime import ui
 
 
@@ -704,15 +705,17 @@ def _build_start_menu(
         on_learning_profile_changed=on_learning_profile_changed,
     )
     menu_bar.add_cascade(label="Lernen", menu=learning_menu, underline=0)
-    debug_menu.add_checkbutton(
+    add_menu_switch(
+        debug_menu,
         label="Debug-Panel im Quiz anzeigen",
         variable=debug_show_panel_var,
-        command=on_debug_options_changed,
+        on_change=lambda _on, apply=on_debug_options_changed: apply(),
     )
-    debug_menu.add_checkbutton(
+    add_menu_switch(
+        debug_menu,
         label="Dateipfade im Debug-Panel",
         variable=debug_show_paths_var,
-        command=on_debug_options_changed,
+        on_change=lambda _on, apply=on_debug_options_changed: apply(),
     )
     menu_bar.add_cascade(label="Debug", menu=debug_menu, underline=0)
     dialog.config(menu=menu_bar)

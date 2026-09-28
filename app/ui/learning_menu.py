@@ -3,6 +3,7 @@
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
+from bw_gui.menu import add_menu_switch
 from bw_gui.runtime import ui
 
 from ..core.learning_profiles import (
@@ -71,20 +72,23 @@ def populate_learning_menu(
         )
 
     learning_menu.add_separator()
-    learning_menu.add_checkbutton(
+    add_menu_switch(
+        learning_menu,
         label="Gleicher Name darf direkt wiederkommen",
         variable=allow_immediate_repeat_var,
-        command=on_learning_toggles_changed,
+        on_change=lambda _on, apply=on_learning_toggles_changed: apply(),
     )
-    learning_menu.add_checkbutton(
+    add_menu_switch(
+        learning_menu,
         label="Fehler-Relearn priorisieren",
         variable=prioritize_urgent_var,
-        command=on_learning_toggles_changed,
+        on_change=lambda _on, apply=on_learning_toggles_changed: apply(),
     )
-    learning_menu.add_checkbutton(
+    add_menu_switch(
+        learning_menu,
         label="Neue Fotos trotz fälliger Wiederholungen beimischen",
         variable=mix_new_cards_var,
-        command=on_learning_toggles_changed,
+        on_change=lambda _on, apply=on_learning_toggles_changed: apply(),
     )
 
     learning_menu.add_separator()
@@ -102,10 +106,11 @@ def populate_learning_menu(
         )
     learning_menu.add_cascade(label="Abrufaufwand", menu=min_delay_menu)
 
-    learning_menu.add_checkbutton(
+    add_menu_switch(
+        learning_menu,
         label="Langsame richtige Antworten früher wiederholen (längenfair)",
         variable=revisit_slow_correct_var,
-        command=on_learning_toggles_changed,
+        on_change=lambda _on, apply=on_learning_toggles_changed: apply(),
     )
 
     slow_threshold_menu = ui.Menu(learning_menu, tearoff=0)

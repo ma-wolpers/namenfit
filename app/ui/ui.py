@@ -17,6 +17,7 @@ from bw_gui.menu import MenuItem as SharedMenuItem
 from bw_gui.menu import section_spec
 from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
 from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
+from bw_gui.widgets import Switch
 
 from time import perf_counter
 from PIL import Image, ImageTk
@@ -314,10 +315,16 @@ class QuizApp(BwBaseWindow):
         if callable(callback):
             callback()
 
-    def _toggle_menu_bool(self, tk_var, callback=None):
-        """Toggle a bool variable from shared menu rows."""
+    def _apply_menu_switch(self, tk_var, requested, callback=None):
+        """Apply the value requested by a switch menu row (immediate effect).
 
-        tk_var.set(not bool(tk_var.get()))
+        Args:
+            tk_var: The BooleanVar that mirrors the setting.
+            requested: The bool the user asked for (``MenuItem.on_toggle``).
+            callback: Optional handler that applies/persists the setting.
+        """
+
+        tk_var.set(bool(requested))
         if callable(callback):
             callback()
 
@@ -410,26 +417,26 @@ class QuizApp(BwBaseWindow):
         items.append(SharedMenuItem(type="separator"))
         items.append(
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Gleicher Name darf direkt wiederkommen",
                 checked=bool(self.allow_immediate_repeat_var.get()),
-                command=lambda: self._toggle_menu_bool(self.allow_immediate_repeat_var, self._on_learning_toggles_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.allow_immediate_repeat_var, on, self._on_learning_toggles_changed),
             )
         )
         items.append(
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Fehler-Relearn priorisieren",
                 checked=bool(self.prioritize_urgent_var.get()),
-                command=lambda: self._toggle_menu_bool(self.prioritize_urgent_var, self._on_learning_toggles_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.prioritize_urgent_var, on, self._on_learning_toggles_changed),
             )
         )
         items.append(
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Neue Fotos trotz faelliger Wiederholungen beimischen",
                 checked=bool(self.mix_new_cards_var.get()),
-                command=lambda: self._toggle_menu_bool(self.mix_new_cards_var, self._on_learning_toggles_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.mix_new_cards_var, on, self._on_learning_toggles_changed),
             )
         )
 
@@ -452,10 +459,10 @@ class QuizApp(BwBaseWindow):
 
         items.append(
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Langsame richtige Antworten frueher wiederholen (laengenfair)",
                 checked=bool(self.revisit_slow_correct_var.get()),
-                command=lambda: self._toggle_menu_bool(self.revisit_slow_correct_var, self._on_learning_toggles_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.revisit_slow_correct_var, on, self._on_learning_toggles_changed),
             )
         )
 
@@ -500,16 +507,16 @@ class QuizApp(BwBaseWindow):
     def _menu_items_debug(self):
         return (
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Debug-Panel anzeigen",
                 checked=bool(self.debug_show_panel_var.get()),
-                command=lambda: self._toggle_menu_bool(self.debug_show_panel_var, self._on_debug_options_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.debug_show_panel_var, on, self._on_debug_options_changed),
             ),
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Dateipfade im Debug-Panel",
                 checked=bool(self.debug_show_paths_var.get()),
-                command=lambda: self._toggle_menu_bool(self.debug_show_paths_var, self._on_debug_options_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.debug_show_paths_var, on, self._on_debug_options_changed),
             ),
             SharedMenuItem(type="separator"),
             SharedMenuItem(
@@ -536,10 +543,10 @@ class QuizApp(BwBaseWindow):
         )
         return (
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Sound aktiv",
                 checked=bool(self.sound_enabled_var.get()),
-                command=lambda: self._toggle_menu_bool(self.sound_enabled_var, self._on_sound_enabled_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.sound_enabled_var, on, self._on_sound_enabled_changed),
             ),
             SharedMenuItem(type="separator"),
             SharedMenuItem(type="submenu", label="Lautstaerke", items=volume_items),
@@ -548,10 +555,10 @@ class QuizApp(BwBaseWindow):
     def _menu_items_seat(self):
         return (
             SharedMenuItem(
-                type="radio",
+                type="switch",
                 label="Level 2: Nachbarfragen nur bei korrekter Tischgruppe",
                 checked=bool(self.level2_group_gate_var.get()),
-                command=lambda: self._toggle_menu_bool(self.level2_group_gate_var, self._on_level2_group_gate_changed),
+                on_toggle=lambda on: self._apply_menu_switch(self.level2_group_gate_var, on, self._on_level2_group_gate_changed),
             ),
         )
 
@@ -1259,11 +1266,11 @@ class QuizApp(BwBaseWindow):
         toolbar = widgets.Frame(window, padding=(10, 8))
         toolbar.pack(fill="x")
         widgets.Label(toolbar, textvariable=self._shortcut_runtime_debug_context_var).pack(side="left", fill="x", expand=True)
-        offline_check = widgets.Checkbutton(
+        offline_check = Switch(
             toolbar,
             text="Offline simulieren",
             variable=self._shortcut_runtime_debug_offline_var,
-            command=self._on_shortcut_runtime_offline_var_changed,
+            on_change=lambda _offline: self._on_shortcut_runtime_offline_var_changed(),
         )
         offline_check.pack(side="left", padx=(12, 0))
         self._attach_hover_help(offline_check, label="Offline-Simulation fuer Runtime-Resolver umschalten", shortcut="Ctrl+Shift+O")
