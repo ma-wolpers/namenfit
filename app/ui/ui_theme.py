@@ -133,26 +133,33 @@ def style_danger_button(button, theme_key=None) -> None:
     )
 
 
-def populate_theme_menu(view_menu, theme_var, on_theme_changed) -> None:
-    """Fill *view_menu* with a radio button for every available theme.
+def theme_menu_items(theme_var, on_theme_changed) -> tuple:
+    """Radio rows (bw-gui MenuItem) for every available theme.
 
-    Uses bw_gui's ``THEME_ORDER`` so the full 13-theme list (plus any program-
-    specific themes registered at import time) is shown.  Called by
-    ``startup_dialog.py`` which manages its own tk.Menu.
+    Uses bw_gui's THEME_ORDER so the full theme list (plus any program-specific
+    themes registered at import time) is shown.  Used by startup_dialog.py, whose
+    CustomMenuBar calls the items provider on every open, so the checked row
+    always reflects *theme_var*.
 
     Args:
-        view_menu:        A ``tk.Menu`` instance to populate.
-        theme_var:        A ``tk.StringVar`` that holds the current theme key.
-        on_theme_changed: Callback invoked when the user selects a theme.
+        theme_var:        A tk.StringVar that holds the current theme key.
+        on_theme_changed: Callback invoked after the user selected a theme.
     """
-    for theme_key in THEME_ORDER:
-        theme = get_theme(theme_key)
-        view_menu.add_radiobutton(
-            label=str(theme.get("label", theme_key)),
-            variable=theme_var,
-            value=theme_key,
-            command=on_theme_changed,
+    from bw_gui.menu import MenuItem
+
+    def _select(theme_key):
+        theme_var.set(theme_key)
+        on_theme_changed()
+
+    return tuple(
+        MenuItem(
+            type="radio",
+            label=str(get_theme(theme_key).get("label", theme_key)),
+            checked=(theme_var.get() == theme_key),
+            command=lambda key=theme_key: _select(key),
         )
+        for theme_key in THEME_ORDER
+    )
 
 
 # ── Construction-time constants (used by level_dialog.py) ──────────────────

@@ -68,12 +68,12 @@ from bw_gui.contracts.hsm import (
 from bw_gui.contracts.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
 from bw_gui.laufkern import aggregate_completion, emit_tracking_artifact, verify_manifest, verify_reachability
 from .ui_intents import UiIntent
+from .learning_menu import learning_menu_items
 from .laufkern_manifest_provider import build_runtime_shortcut_manifest
 from ..core.learning_profiles import (
     CUSTOM_PROFILE,
     FEEDBACK_STYLE_OPTIONS,
     LEARNING_PROFILE_ORDER,
-    LEARNING_PROFILES,
     MIN_RETRIEVAL_OPTIONS,
     SLOW_CORRECT_THRESHOLD_OPTIONS,
 )
@@ -362,147 +362,25 @@ class QuizApp(BwBaseWindow):
         return ()
 
     def _menu_items_learning(self):
-        items: list[SharedMenuItem] = []
+        """Lernen-Menue: gemeinsamer Builder mit dem Startdialog (learning_menu_items)."""
 
-        preset_items: list[SharedMenuItem] = []
-        for profile_key in LEARNING_PROFILE_ORDER:
-            profile = LEARNING_PROFILES.get(profile_key)
-            if not profile:
-                continue
-            preset_items.append(
-                SharedMenuItem(
-                    type="radio",
-                    label=str(profile.get("label", profile_key)),
-                    checked=(self.learning_profile_var.get() == profile_key),
-                    command=lambda key=profile_key: self._set_menu_var(
-                        self.learning_profile_var,
-                        key,
-                        self._on_learning_profile_changed,
-                    ),
-                )
-            )
-        preset_items.append(SharedMenuItem(type="separator"))
-        preset_items.append(
-            SharedMenuItem(
-                type="radio",
-                label="Individuell (manuell)",
-                checked=(self.learning_profile_var.get() == CUSTOM_PROFILE),
-                command=lambda: self._set_menu_var(
-                    self.learning_profile_var,
-                    CUSTOM_PROFILE,
-                    self._on_learning_profile_changed,
-                ),
-            )
+        return learning_menu_items(
+            review_profile_var=self.review_profile_var,
+            allow_immediate_repeat_var=self.allow_immediate_repeat_var,
+            prioritize_urgent_var=self.prioritize_urgent_var,
+            mix_new_cards_var=self.mix_new_cards_var,
+            min_retrieval_seconds_var=self.min_retrieval_seconds_var,
+            revisit_slow_correct_var=self.revisit_slow_correct_var,
+            slow_correct_threshold_var=self.slow_correct_threshold_var,
+            feedback_style_var=self.feedback_style_var,
+            on_review_profile_changed=self._on_review_profile_changed,
+            on_learning_toggles_changed=self._on_learning_toggles_changed,
+            on_min_retrieval_changed=self._on_min_retrieval_changed,
+            on_slow_correct_threshold_changed=self._on_slow_correct_threshold_changed,
+            on_feedback_style_changed=self._on_feedback_style_changed,
+            learning_profile_var=self.learning_profile_var,
+            on_learning_profile_changed=self._on_learning_profile_changed,
         )
-        items.append(SharedMenuItem(type="submenu", label="Lernprofil", items=tuple(preset_items)))
-        items.append(SharedMenuItem(type="separator"))
-
-        for profile_key in ("leicht", "mittel", "stark"):
-            profile = REVIEW_PROFILES.get(profile_key)
-            if not profile:
-                continue
-            items.append(
-                SharedMenuItem(
-                    type="radio",
-                    label=f"Wiederholungsprofil: {profile['label']}",
-                    checked=(self.review_profile_var.get() == profile_key),
-                    command=lambda key=profile_key: self._set_menu_var(
-                        self.review_profile_var,
-                        key,
-                        self._on_review_profile_changed,
-                    ),
-                )
-            )
-
-        items.append(SharedMenuItem(type="separator"))
-        items.append(
-            SharedMenuItem(
-                type="switch",
-                label="Gleicher Name darf direkt wiederkommen",
-                checked=bool(self.allow_immediate_repeat_var.get()),
-                on_toggle=lambda on: self._apply_menu_switch(self.allow_immediate_repeat_var, on, self._on_learning_toggles_changed),
-            )
-        )
-        items.append(
-            SharedMenuItem(
-                type="switch",
-                label="Fehler-Relearn priorisieren",
-                checked=bool(self.prioritize_urgent_var.get()),
-                on_toggle=lambda on: self._apply_menu_switch(self.prioritize_urgent_var, on, self._on_learning_toggles_changed),
-            )
-        )
-        items.append(
-            SharedMenuItem(
-                type="switch",
-                label="Neue Fotos trotz faelliger Wiederholungen beimischen",
-                checked=bool(self.mix_new_cards_var.get()),
-                on_toggle=lambda on: self._apply_menu_switch(self.mix_new_cards_var, on, self._on_learning_toggles_changed),
-            )
-        )
-
-        items.append(SharedMenuItem(type="separator"))
-
-        min_delay_items = tuple(
-            SharedMenuItem(
-                type="radio",
-                label=("Mindest-Denkzeit: aus" if seconds == 0 else f"Mindest-Denkzeit: {seconds}s"),
-                checked=(int(self.min_retrieval_seconds_var.get()) == int(seconds)),
-                command=lambda secs=seconds: self._set_menu_var(
-                    self.min_retrieval_seconds_var,
-                    int(secs),
-                    self._on_min_retrieval_changed,
-                ),
-            )
-            for seconds in MIN_RETRIEVAL_OPTIONS
-        )
-        items.append(SharedMenuItem(type="submenu", label="Abrufaufwand", items=min_delay_items))
-
-        items.append(
-            SharedMenuItem(
-                type="switch",
-                label="Langsame richtige Antworten frueher wiederholen (laengenfair)",
-                checked=bool(self.revisit_slow_correct_var.get()),
-                on_toggle=lambda on: self._apply_menu_switch(self.revisit_slow_correct_var, on, self._on_learning_toggles_changed),
-            )
-        )
-
-        slow_threshold_items = tuple(
-            SharedMenuItem(
-                type="radio",
-                label=f"Basis-Schwelle (ca. 6 Buchstaben): >= {seconds}s",
-                checked=(int(self.slow_correct_threshold_var.get()) == int(seconds)),
-                command=lambda secs=seconds: self._set_menu_var(
-                    self.slow_correct_threshold_var,
-                    int(secs),
-                    self._on_slow_correct_threshold_changed,
-                ),
-            )
-            for seconds in SLOW_CORRECT_THRESHOLD_OPTIONS
-        )
-        items.append(SharedMenuItem(type="submenu", label="Langsam-richtig-Schwelle (Basis)", items=slow_threshold_items))
-
-        feedback_items: list[SharedMenuItem] = []
-        for style_key in FEEDBACK_STYLE_OPTIONS:
-            label = {
-                "sarkastisch": "Feedback: Sarkastisch",
-                "ermutigend": "Feedback: Ermutigend",
-                "neutral": "Feedback: Neutral",
-            }.get(style_key, style_key)
-            feedback_items.append(
-                SharedMenuItem(
-                    type="radio",
-                    label=label,
-                    checked=(self.feedback_style_var.get() == style_key),
-                    command=lambda key=style_key: self._set_menu_var(
-                        self.feedback_style_var,
-                        key,
-                        self._on_feedback_style_changed,
-                    ),
-                )
-            )
-        items.append(SharedMenuItem(type="submenu", label="Feedbackstil", items=tuple(feedback_items)))
-
-        return tuple(items)
 
     def _menu_items_debug(self):
         return (

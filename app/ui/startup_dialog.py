@@ -6,7 +6,7 @@ from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 from ..config import DataSourceSelection
 from .dialog_services import filedialog, messagebox
-from .learning_menu import populate_learning_menu
+from .learning_menu import learning_menu_items
 from ..core.learning_profiles import (
     CUSTOM_PROFILE,
     get_profile_settings,
@@ -17,7 +17,7 @@ from .ui_theme import (
     apply_window_theme,
     get_theme,
     normalize_theme_key,
-    populate_theme_menu,
+    theme_menu_items,
     style_danger_button,
     style_primary_button,
     style_secondary_button,
@@ -26,8 +26,9 @@ from .window_identity import apply_window_icon
 
 
 ensure_bw_gui_on_path()
-from bw_gui.menu import add_menu_switch
+from bw_gui.menu import CustomMenuBar, MenuDefinition, MenuItem
 from bw_gui.runtime import ui
+from bw_gui.theming import configure_ttk_theme
 
 
 def ask_data_source_dialog(recent_store):
@@ -533,8 +534,14 @@ def ask_data_source_dialog(recent_store):
     style_secondary_button(cancel_button, theme_key)
     cancel_button.pack(side="right")
 
+    menu_holder = {}
+
     def _apply_theme():
         apply_window_theme(dialog, theme_key)
+        # Sets bw-gui's ambient theme (menu switch glyphs follow it) and the menu strip.
+        configure_ttk_theme(dialog, theme_key)
+        if menu_holder.get("bar") is not None:
+            menu_holder["bar"].refresh_theme(theme_key)
         current = _theme()
 
         container.configure(bg=current["bg_main"])
@@ -577,8 +584,9 @@ def ask_data_source_dialog(recent_store):
     dialog.bind("z", on_resume_last)
     dialog.bind("Z", on_resume_last)
     dialog.update_idletasks()
-    _build_start_menu(
+    menu_holder["bar"] = _build_start_menu(
         dialog,
+        theme_key,
         recent_data,
         on_pick_recent,
         theme_var,
@@ -623,6 +631,7 @@ def ask_data_source_dialog(recent_store):
 
 def _build_start_menu(
     dialog,
+    theme_key,
     recent_data,
     on_pick_recent,
     theme_var,
@@ -646,99 +655,94 @@ def _build_start_menu(
     debug_show_paths_var,
     on_debug_options_changed,
 ):
-    menu_bar = ui.Menu(dialog)
-    file_menu = ui.Menu(menu_bar, tearoff=0)
-    view_menu = ui.Menu(menu_bar, tearoff=0)
-    learning_menu = ui.Menu(menu_bar, tearoff=0)
-    debug_menu = ui.Menu(menu_bar, tearoff=0)
+    """Baut die bw-gui-Menüleiste (CustomMenuBar) des Startdialogs.
 
-    csv_menu = ui.Menu(file_menu, tearoff=0)
-    _populate_recent_simple_menu(
-        csv_menu,
-        recent_data.get("csv", []),
-        label_fn=lambda csv_path: os.path.basename(csv_path),
-        command_fn=lambda csv_path: on_pick_recent(
-            csv_path=csv_path, photo_folder=None
-        ),
+    Gleiche Menütechnik wie das Quizfenster: Datei (zuletzt geöffnet), Ansicht
+    (Themes), Lernen (gemeinsamer Builder learning_menu_items) und Debug.
+    Die Items-Provider laufen bei jedem Öffnen neu und zeigen so immer den
+    aktuellen Zustand der Tk-Variablen.
+
+    Returns:
+        Die aufgebaute CustomMenuBar (für refresh_theme beim Themewechsel).
+    """
+
+    def file_items():
+        return (
+            MenuItem(type="submenu", label="Letzte CSV-Dateien", items=_recent_simple_items(
+                recent_data.get("csv", []),
+                label_fn=os.path.basename,
+                command_fn=lambda csv_path: on_pick_recent(csv_path=csv_path, photo_folder=None),
+            )),
+            MenuItem(type="submenu", label="Letzte Fotoordner", items=_recent_simple_items(
+                recent_data.get("photos", []),
+                label_fn=lambda folder: os.path.basename(folder.rstrip("\\/")) or folder,
+                command_fn=lambda folder: on_pick_recent(csv_path=None, photo_folder=folder),
+            )),
+            MenuItem(type="submenu", label="Letzte Kombinationen",
+                     items=_recent_combined_items(recent_data.get("combined", []), on_pick_recent)),
+            MenuItem(type="command", label="Schließen", command=dialog.quit),
+        )
+
+    def learning_items():
+        return learning_menu_items(
+            review_profile_var=review_profile_var,
+            allow_immediate_repeat_var=allow_immediate_repeat_var,
+            prioritize_urgent_var=prioritize_urgent_var,
+            mix_new_cards_var=mix_new_cards_var,
+            min_retrieval_seconds_var=min_retrieval_seconds_var,
+            revisit_slow_correct_var=revisit_slow_correct_var,
+            slow_correct_threshold_var=slow_correct_threshold_var,
+            feedback_style_var=feedback_style_var,
+            on_review_profile_changed=on_review_profile_changed,
+            on_learning_toggles_changed=on_learning_toggles_changed,
+            on_min_retrieval_changed=on_min_retrieval_changed,
+            on_slow_correct_threshold_changed=on_slow_correct_threshold_changed,
+            on_feedback_style_changed=on_feedback_style_changed,
+            learning_profile_var=learning_profile_var,
+            on_learning_profile_changed=on_learning_profile_changed,
+        )
+
+    def debug_switch(label, tk_var):
+        def apply(requested):
+            tk_var.set(bool(requested))
+            on_debug_options_changed()
+
+        return MenuItem(type="switch", label=label, checked=bool(tk_var.get()), on_toggle=apply)
+
+    def debug_items():
+        return (
+            debug_switch("Debug-Panel im Quiz anzeigen", debug_show_panel_var),
+            debug_switch("Dateipfade im Debug-Panel", debug_show_paths_var),
+        )
+
+    definitions = (
+        MenuDefinition(key="file", label="Datei", alt="d", items_provider=file_items),
+        MenuDefinition(key="view", label="Ansicht", alt="a",
+                       items_provider=lambda: theme_menu_items(theme_var, on_theme_changed)),
+        MenuDefinition(key="lernen", label="Lernen", alt="l", items_provider=learning_items),
+        MenuDefinition(key="debug", label="Debug", alt="g", items_provider=debug_items),
     )
-
-    photo_menu = ui.Menu(file_menu, tearoff=0)
-    _populate_recent_simple_menu(
-        photo_menu,
-        recent_data.get("photos", []),
-        label_fn=lambda photo_folder: os.path.basename(photo_folder.rstrip("\\/"))
-        or photo_folder,
-        command_fn=lambda photo_folder: on_pick_recent(
-            csv_path=None, photo_folder=photo_folder
-        ),
-    )
-
-    combined_menu = ui.Menu(file_menu, tearoff=0)
-    _populate_recent_combined_menu(
-        combined_menu, recent_data.get("combined", []), on_pick_recent
-    )
-
-    file_menu.add_cascade(label="Letzte CSV-Dateien", menu=csv_menu)
-    file_menu.add_cascade(label="Letzte Fotoordner", menu=photo_menu)
-    file_menu.add_cascade(label="Letzte Kombinationen", menu=combined_menu)
-    file_menu.add_command(label="Schließen", command=dialog.quit)
-
-    menu_bar.add_cascade(label="Datei", menu=file_menu, underline=0)
-    populate_theme_menu(view_menu, theme_var, on_theme_changed)
-    menu_bar.add_cascade(label="Ansicht", menu=view_menu, underline=0)
-    populate_learning_menu(
-        learning_menu,
-        review_profile_var=review_profile_var,
-        allow_immediate_repeat_var=allow_immediate_repeat_var,
-        prioritize_urgent_var=prioritize_urgent_var,
-        mix_new_cards_var=mix_new_cards_var,
-        min_retrieval_seconds_var=min_retrieval_seconds_var,
-        revisit_slow_correct_var=revisit_slow_correct_var,
-        slow_correct_threshold_var=slow_correct_threshold_var,
-        feedback_style_var=feedback_style_var,
-        on_review_profile_changed=on_review_profile_changed,
-        on_learning_toggles_changed=on_learning_toggles_changed,
-        on_min_retrieval_changed=on_min_retrieval_changed,
-        on_slow_correct_threshold_changed=on_slow_correct_threshold_changed,
-        on_feedback_style_changed=on_feedback_style_changed,
-        learning_profile_var=learning_profile_var,
-        on_learning_profile_changed=on_learning_profile_changed,
-    )
-    menu_bar.add_cascade(label="Lernen", menu=learning_menu, underline=0)
-    add_menu_switch(
-        debug_menu,
-        label="Debug-Panel im Quiz anzeigen",
-        variable=debug_show_panel_var,
-        on_change=lambda _on, apply=on_debug_options_changed: apply(),
-    )
-    add_menu_switch(
-        debug_menu,
-        label="Dateipfade im Debug-Panel",
-        variable=debug_show_paths_var,
-        on_change=lambda _on, apply=on_debug_options_changed: apply(),
-    )
-    menu_bar.add_cascade(label="Debug", menu=debug_menu, underline=0)
-    dialog.config(menu=menu_bar)
+    menu_bar = CustomMenuBar(dialog, definitions, theme_key=theme_key)
+    menu_bar.build()
+    return menu_bar
 
 
-def _populate_recent_simple_menu(menu, entries, label_fn, command_fn):
-    """Befüllt ein Untermenü mit einfachen Path-Einträgen oder '(keine)'."""
+def _recent_simple_items(entries, label_fn, command_fn):
+    """Menüzeilen für einfache Path-Einträge, oder eine deaktivierte '(keine)'-Zeile."""
 
     valid_entries = [entry for entry in entries if isinstance(entry, str)]
     if not valid_entries:
-        menu.add_command(label="(keine)", state="disabled")
-        return
-
-    for entry in valid_entries:
-        menu.add_command(
-            label=label_fn(entry), command=lambda path=entry: command_fn(path)
-        )
+        return (MenuItem(type="disabled", label="(keine)"),)
+    return tuple(
+        MenuItem(type="command", label=label_fn(entry), command=lambda path=entry: command_fn(path))
+        for entry in valid_entries
+    )
 
 
-def _populate_recent_combined_menu(menu, entries, on_pick_recent):
-    """Befüllt das Kombi-Untermenü aus gespeicherten CSV+Foto-Paaren."""
+def _recent_combined_items(entries, on_pick_recent):
+    """Menüzeilen für gespeicherte CSV+Foto-Paare, oder eine deaktivierte '(keine)'-Zeile."""
 
-    added = 0
+    items = []
     for entry in entries or []:
         if not isinstance(entry, dict):
             continue
@@ -748,16 +752,12 @@ def _populate_recent_combined_menu(menu, entries, on_pick_recent):
             continue
         csv_name = os.path.basename(csv_path)
         photo_name = os.path.basename(photo_folder.rstrip("\\/")) or photo_folder
-        menu.add_command(
+        items.append(MenuItem(
+            type="command",
             label=f"{csv_name} + {photo_name}",
-            command=lambda c=csv_path, p=photo_folder: on_pick_recent(
-                csv_path=c, photo_folder=p
-            ),
-        )
-        added += 1
-
-    if added == 0:
-        menu.add_command(label="(keine)", state="disabled")
+            command=lambda c=csv_path, p=photo_folder: on_pick_recent(csv_path=c, photo_folder=p),
+        ))
+    return tuple(items) or (MenuItem(type="disabled", label="(keine)"),)
 
 
 def _center_dialog(dialog):

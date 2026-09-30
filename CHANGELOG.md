@@ -17,6 +17,7 @@ The format is based on Keep a Changelog.
 - `bw_libs/shared_gui_core.py`: Docstring als Raw-String (`r"""`) markiert, damit der enthaltene Windows-Pfad nicht als ungültige Unicode-Escape-Sequenz geparst wird.
 
 ### Changed
+- Der Startdialog hat jetzt dieselbe Menüleiste wie das Quizfenster (Datei, Ansicht, Lernen, Debug; Alt+Buchstabe öffnet ein Menü), statt der Windows-Standardmenüleiste. Die Menüleiste passt sich an das gewählte Theme an. Das Lernen-Menü ist in beiden Fenstern identisch.
 - Ein/Aus-Einstellungen in den Menüs (Lernen, Debug, Sound, Sitzplan), im Startdialog und "Offline simulieren" im Shortcut-Runtime-Debug sind jetzt einheitlich moderne Schalter, die sofort wirken. Im Quizfenster erschienen sie vorher wie Auswahlpunkte (●/○). Auch "Offline simulieren" im Debug-Menü ist jetzt ein Schalter mit Zustandsanzeige statt eines "…umschalten"-Befehls.
 - Lokale Theme-Daten entfernt; Quiz-Widgets auf ttk-Äquivalente umgestellt, damit Styling vollständig über den zentralen `bw_gui`-Theme-Mechanismus läuft.
 - `QuizApp` auf `BwBaseWindow` aus `bw_gui` umgestellt; das redundante lokale Themeeinstellungs-Feld entfiel.
