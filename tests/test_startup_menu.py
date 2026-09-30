@@ -11,12 +11,21 @@ from bw_gui.runtime import ui
 from app.ui.startup_dialog import _build_start_menu
 
 
-@pytest.fixture
-def root():
+@pytest.fixture(scope="module")
+def _module_root():
+    # One interpreter per module: creating/destroying several tk.Tk() back to back
+    # intermittently fails on Windows (Tcl init race, see bw-gui tests/conftest.py).
     window = ui.Tk()
     window.withdraw()
     yield window
     window.destroy()
+
+
+@pytest.fixture
+def root(_module_root):
+    yield _module_root
+    for child in _module_root.winfo_children():
+        child.destroy()
 
 
 def _build(root, calls):
