@@ -8,6 +8,7 @@ Regel:
 
 ## [Unreleased]
 
+- Startdialog-Positionierung (bw-gui-Wunschliste Schritt 1, 2026-10-09): `startup_dialog._center_dialog` nutzt `bw_gui.runtime.screen_placement.place_on_pointer_monitor(vertical_fraction=1/3)` statt `winfo_screenwidth/height` (kannte nur den Primärmonitor).
 - Schritt-0-Invariante (bw-gui-Wunschliste, 2026-10-09): neuer Test `tests/test_bw_gui_import_source.py` prüft per `bw_gui.testing.import_source.assert_bw_gui_from_sibling`, dass bw_gui aus dem Geschwister-Checkout und nie aus einer verschachtelten `bw-gui/`-Kopie geladen wird. Bleibt dauerhaft, auch nach Entfernen des Fallbacks 3 in `ensure_bw_gui_on_path`.
 ### Added
 - LaufKern-Bridge eingefuehrt: neues zentrales Modul `bw_libs/ui_contract/laufkern.py` (Shared-`bw_gui.laufkern`-Bridge mit lokalem Fallback) und Export ueber `bw_libs/ui_contract/__init__.py`; zusaetzlicher Regressionstest `tests/test_laufkern_bridge.py` fuer Manifestaufbau und Shortcut-basierte Reachability.

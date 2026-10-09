@@ -26,6 +26,7 @@ from .window_identity import apply_window_icon
 
 
 ensure_bw_gui_on_path()
+from bw_gui.runtime.screen_placement import place_on_pointer_monitor
 from bw_gui.menu import CustomMenuBar, MenuDefinition, MenuItem
 from bw_gui.runtime import ui
 from bw_gui.theming import configure_ttk_theme
@@ -761,11 +762,10 @@ def _recent_combined_items(entries, on_pick_recent):
 
 
 def _center_dialog(dialog):
-    screen_width = dialog.winfo_screenwidth()
-    screen_height = dialog.winfo_screenheight()
-    window_width = dialog.winfo_reqwidth()
-    window_height = dialog.winfo_reqheight()
-    x_pos = max(0, int((screen_width - window_width) / 2))
-    y_pos = max(0, int((screen_height - window_height) / 3))
-    dialog.geometry(f"+{x_pos}+{y_pos}")
+    """Place the startup dialog on the monitor under the mouse pointer (upper third).
+
+    Uses bw-gui's screen-placement contract instead of ``winfo_screenwidth``,
+    which on Windows only knows the primary monitor.
+    """
+    place_on_pointer_monitor(dialog, vertical_fraction=1 / 3)
 
