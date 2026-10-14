@@ -38,13 +38,6 @@ SHORTCUT_COVERAGE_SOFT_CHECKS = (
         "shortcut_markers": ("intent=UiIntent.QUIZ_ENTER",),
     },
     {
-        "label": "quiz-enter-numpad",
-        "intent_paths": ("app/ui/ui_intents.py",),
-        "intent_markers": ("QUIZ_ENTER_NUMPAD", "quiz.enter.numpad"),
-        "shortcut_paths": ("app/ui/ui.py",),
-        "shortcut_markers": ("intent=UiIntent.QUIZ_ENTER_NUMPAD",),
-    },
-    {
         "label": "quiz-space",
         "intent_paths": ("app/ui/ui_intents.py",),
         "intent_markers": ("QUIZ_SPACE", "quiz.space"),
@@ -379,7 +372,7 @@ def _check_runtime_shortcut_integration(errors: list[str]) -> None:
     )
     _require_substring(
         ui_module,
-        "self._popup_registry = PopupPolicyRegistry()",
+        "dialog_open=blocking(self.root, include_menus=True),",
         "app/ui/ui.py",
         errors,
     )

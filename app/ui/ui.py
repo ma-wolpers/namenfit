@@ -8,7 +8,8 @@ from io import BytesIO
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import BwBaseWindow, WindowShortcutBinder, ui, widgets
+from bw_gui.runtime import BwBaseWindow, OverlayCategory, accepts_text_input, WindowShortcutBinder, blocking, overlay_state, register_overlay, ui, widgets
+from bw_gui.contracts import EventResult, Key, KeySpec, Mod
 from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator
 from bw_gui.dialogs import SettingsDialogSpec as SharedSettingsDialogSpec
 from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
@@ -65,7 +66,7 @@ from bw_gui.contracts.hsm import (
     ESCAPE_EXIT_INLINE_EDITOR,
     build_ui_hsm_contract,
 )
-from bw_gui.contracts.popup import POPUP_KIND_MODAL, POPUP_KIND_NON_MODAL, PopupPolicy, PopupPolicyRegistry
+from bw_gui.contracts.popup import POPUP_KIND_NON_MODAL, PopupPolicy
 from bw_gui.laufkern import aggregate_completion, emit_tracking_artifact, verify_manifest, verify_reachability
 from .ui_intents import UiIntent
 from .learning_menu import learning_menu_items
@@ -170,17 +171,6 @@ class QuizApp(BwBaseWindow):
         self.session_prompt_results = {}
         self.session_confusions = {}
         self._hsm_contract = build_ui_hsm_contract(intents=_known_ui_intents())
-        self._popup_registry = PopupPolicyRegistry()
-        self._popup_registry.register_policy(PopupPolicy(policy_id="dialog.modal", kind=POPUP_KIND_MODAL))
-        self._popup_registry.register_policy(
-            PopupPolicy(
-                policy_id="dialog.non_blocking",
-                kind=POPUP_KIND_NON_MODAL,
-                trap_focus=False,
-                affects_mode=False,
-            )
-        )
-        self._tracked_popup_ids = set()
         self._shortcut_debug_offline = False
         self._shortcut_runtime_debug_window = None
         self._shortcut_runtime_debug_table = None
@@ -242,11 +232,13 @@ class QuizApp(BwBaseWindow):
         # so the title bar and view-menu radios start in sync with self.theme_key.
         BwBaseWindow.apply_theme(self, self.theme_key)
         self._apply_theme()
+        # dialog_open preset: the former toplevel scan counted every visible popup of
+        # the root as blocking, including menu popups, but not the non-blocking debug
+        # window (OVERLAY_STACK_CONTRACT.md).
         self._shortcuts = WindowShortcutBinder(
             self.root,
             hsm_contract=self._hsm_contract,
-            is_text_input=self._is_editable_widget,
-            dialog_open=self._dialog_open_for_shortcuts,
+            dialog_open=blocking(self.root, include_menus=True),
             offline=lambda: self._shortcut_debug_offline,
             on_dispatch=self._record_laufkern_intent_dispatch,
         )
@@ -904,122 +896,62 @@ class QuizApp(BwBaseWindow):
         self.debug_label.pack(pady=(0, 6))
 
     def _bind_shortcuts(self):
-        """Bindet Enter/Leertaste an die jeweils passende Aktion."""
+        """Bindet Enter/Leertaste & Co. an die jeweils passende Aktion (KeySpec, exakte Modifier).
 
+        Benannte Tasten tolerieren wie bisher zusaetzlich gehaltenes Shift (der alte
+        Binder-Contract liess Shift nie blockieren). Enter und Numpad-Enter sind seit
+        dem KeySpec-Contract dieselbe semantische Taste und daher eine Definition;
+        Alt+s und Alt+S (mit Shift) sind zwei Alternativen derselben Definition.
+        """
+
+        shift = (Mod.SHIFT,)
+        common = {"modes": (UI_MODE_GLOBAL, UI_MODE_DIALOG), "allow_when_text_input": True}
         self._shortcuts.bind(
-            "<Return>",
-            self._on_enter,
-            binding_id="global.enter",
-            intent=UiIntent.QUIZ_ENTER,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            KeySpec(Key.ENTER, (), shift), self._on_enter, binding_id="global.enter", intent=UiIntent.QUIZ_ENTER, **common
         )
         self._shortcuts.bind(
-            "<KP_Enter>",
-            self._on_enter,
-            binding_id="global.enter.numpad",
-            intent=UiIntent.QUIZ_ENTER_NUMPAD,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            KeySpec(Key.SPACE, (), shift), self._on_space, binding_id="global.space", intent=UiIntent.QUIZ_SPACE, **common
         )
         self._shortcuts.bind(
-            "<space>",
-            self._on_space,
-            binding_id="global.space",
-            intent=UiIntent.QUIZ_SPACE,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
-        )
-        self._shortcuts.bind(
-            "<BackSpace>",
+            KeySpec(Key.BACKSPACE, (), shift),
             self._on_backspace,
             binding_id="global.backspace",
             intent=UiIntent.QUIZ_TYPO,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            **common,
         )
         self._shortcuts.bind(
-            "<Alt-s>",
+            [KeySpec.char("s", {Mod.ALT}), KeySpec.char("S", {Mod.ALT})],
             self._on_alt_s,
             binding_id="global.alt-s",
             intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            **common,
         )
         self._shortcuts.bind(
-            "<Alt-S>",
-            self._on_alt_s,
-            binding_id="global.alt-s.upper",
-            intent=UiIntent.SETTINGS_TOGGLE_GROUP_GATE_UPPER,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
-        )
-        self._shortcuts.bind(
-            "<Control-Shift-d>",
+            KeySpec.parse("Ctrl+Shift+D"),
             lambda _event: self._open_shortcut_runtime_debug_dialog(),
             binding_id="debug.runtime-overlay",
             intent=UiIntent.DEBUG_RUNTIME_OVERLAY,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            **common,
         )
         self._shortcuts.bind(
-            "<Control-Shift-o>",
+            KeySpec.parse("Ctrl+Shift+O"),
             lambda _event: self._toggle_shortcut_runtime_offline(),
             binding_id="debug.runtime-offline",
             intent=UiIntent.DEBUG_RUNTIME_OFFLINE,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            **common,
         )
         self._shortcuts.bind(
-            "<Escape>",
+            KeySpec(Key.ESCAPE, (), shift),
             self._on_escape_runtime,
             binding_id="global.escape",
             intent=UiIntent.GLOBAL_ESCAPE,
-            modes=(UI_MODE_GLOBAL, UI_MODE_DIALOG),
-            allow_when_text_input=True,
+            **common,
         )
 
-    @staticmethod
     def _is_editable_widget(widget):
         if widget is None:
             return False
         return isinstance(widget, (ui.Entry, ui.Text, ui.Spinbox, widgets.Entry, widgets.Combobox))
-
-    def _track_popup_window(self, window, *, policy_id="dialog.modal"):
-        popup_id = str(window)
-        if popup_id in self._tracked_popup_ids:
-            return
-        self._popup_registry.open_popup(popup_id=popup_id, title=str(window.title() or ""), policy_id=policy_id)
-        self._tracked_popup_ids.add(popup_id)
-
-    def _sync_popup_sessions_from_windows(self):
-        visible_popup_ids = set()
-        for child in self.root.winfo_children():
-            if not isinstance(child, ui.Toplevel):
-                continue
-            try:
-                if not int(child.winfo_exists()):
-                    continue
-                if str(child.state()).lower() == "withdrawn":
-                    continue
-            except Exception:
-                continue
-
-            popup_id = str(child)
-            visible_popup_ids.add(popup_id)
-            if popup_id in self._tracked_popup_ids:
-                continue
-            self._popup_registry.open_popup(popup_id=popup_id, title=str(child.title() or ""), policy_id="dialog.modal")
-            self._tracked_popup_ids.add(popup_id)
-
-        stale_ids = self._tracked_popup_ids - visible_popup_ids
-        for popup_id in tuple(stale_ids):
-            self._popup_registry.close_popup(popup_id)
-            self._tracked_popup_ids.discard(popup_id)
-
-    def _dialog_open_for_shortcuts(self):
-        self._sync_popup_sessions_from_windows()
-        return self._popup_registry.has_mode_blocking_popup()
 
     def _build_laufkern_manifest(self):
         """Build one declarative LaufKern manifest from registered runtime shortcuts."""
@@ -1079,39 +1011,37 @@ class QuizApp(BwBaseWindow):
         )
         return f"LK completion {summary.status} {summary.completed_steps}/{summary.mandatory_steps}"
 
+    def _active_overlay(self):
+        """Return the most recently opened non-transient overlay toplevel, or ``None``."""
+        for entry in reversed(overlay_state(self.root).entries):
+            if entry.category is not OverlayCategory.TRANSIENT and entry.toplevel is not None:
+                return entry.toplevel
+        return None
+
     def _close_active_popup_on_escape(self):
-        self._sync_popup_sessions_from_windows()
-        active_popup = self._popup_registry.active_popup()
-        if active_popup is None:
+        """Close the most recently opened popup (overlay stack), True if one was closed."""
+        popup = self._active_overlay()
+        if popup is None:
             return False
-        popup_id = active_popup.popup_id
-        for child in self.root.winfo_children():
-            if not isinstance(child, ui.Toplevel):
-                continue
-            if str(child) != popup_id:
-                continue
-            try:
-                child.destroy()
-            except Exception:
-                pass
-            break
-        self._popup_registry.close_popup(popup_id)
-        self._tracked_popup_ids.discard(popup_id)
+        try:
+            popup.destroy()
+        except Exception:
+            pass
         return True
 
     def _on_escape_runtime(self, _event=None):
         focused = self.root.focus_get()
         action = self._hsm_contract.resolve_escape_action(
-            has_popup=self._popup_registry.has_active_popup(),
-            has_inline_editor=self._is_editable_widget(focused),
+            has_popup=self._active_overlay() is not None,
+            has_inline_editor=accepts_text_input(focused),
             has_parent_state=False,
         )
         if action == ESCAPE_CLOSE_POPUP and self._close_active_popup_on_escape():
-            return "break"
+            return EventResult.HANDLED
         if action == ESCAPE_EXIT_INLINE_EDITOR:
             self.root.focus_set()
-            return "break"
-        return "break"
+            return EventResult.HANDLED
+        return EventResult.HANDLED
 
     def _toggle_shortcut_runtime_offline(self):
         self._shortcut_debug_offline = not bool(self._shortcut_debug_offline)
@@ -1137,7 +1067,12 @@ class QuizApp(BwBaseWindow):
         window.title("Shortcut Runtime Debug")
         window.geometry("980x520")
         window.minsize(820, 420)
-        self._track_popup_window(window, policy_id="dialog.non_blocking")
+        register_overlay(
+            window,
+            OverlayCategory.NON_MODAL_POPUP,
+            toplevel=window,
+            policy=PopupPolicy(policy_id="dialog.non_blocking", kind=POPUP_KIND_NON_MODAL, trap_focus=False, affects_mode=False),
+        )
 
         self._shortcut_runtime_debug_context_var = ui.StringVar(master=window, value="")
         self._shortcut_runtime_debug_summary_var = ui.StringVar(master=window, value="")
@@ -1187,9 +1122,6 @@ class QuizApp(BwBaseWindow):
 
     def _close_shortcut_runtime_debug_dialog(self):
         if self._shortcut_runtime_debug_window is not None and int(self._shortcut_runtime_debug_window.winfo_exists()):
-            popup_id = str(self._shortcut_runtime_debug_window)
-            self._popup_registry.close_popup(popup_id)
-            self._tracked_popup_ids.discard(popup_id)
             self._shortcut_runtime_debug_window.destroy()
         self._shortcut_runtime_debug_window = None
         self._shortcut_runtime_debug_table = None
@@ -1230,7 +1162,7 @@ class QuizApp(BwBaseWindow):
                 table.insert(
                     "",
                     "end",
-                    values=(mode, definition.sequence, definition.binding_id, status, "" if can_execute else reason),
+                    values=(mode, str(definition.primary_key), definition.binding_id, status, "" if can_execute else reason),
                 )
 
         total = active_count + disabled_count
@@ -1250,7 +1182,7 @@ class QuizApp(BwBaseWindow):
     def _on_alt_s(self, _event):
         self.level2_group_gate_var.set(not self.level2_group_gate_var.get())
         self._on_level2_group_gate_changed()
-        return "break"
+        return EventResult.HANDLED
 
     def _apply_level_widgets(self):
         """Zeigt/versteckt Widgets passend zum aktuellen Level und Modus."""
@@ -1355,25 +1287,25 @@ class QuizApp(BwBaseWindow):
 
         if self.round_finished:
             self._close_round_and_return_to_start()
-            return "break"
+            return EventResult.HANDLED
 
         if self.awaiting_solution:
             self.solve()
-            return "break"
+            return EventResult.HANDLED
 
         self.next_person()
-        return "break"
+        return EventResult.HANDLED
 
     def _on_space(self, _event):
         """Leertaste springt weiter (nur nach Auflösung)."""
 
         if self.round_finished:
             self._close_round_and_return_to_start()
-            return "break"
+            return EventResult.HANDLED
 
         if not self.awaiting_solution:
             self.next_person()
-            return "break"
+            return EventResult.HANDLED
         return None
 
     def _on_backspace(self, _event):
@@ -1381,7 +1313,7 @@ class QuizApp(BwBaseWindow):
 
         if self.name_typo_available:
             self.mark_name_typo()
-            return "break"
+            return EventResult.HANDLED
         return None
 
     def _set_typo_option(self, phase, field):

@@ -1,3 +1,4 @@
+from bw_gui.contracts import Key, KeySpec
 from bw_gui.contracts.keybinding import (
     UI_MODE_DIALOG,
     UI_MODE_EDITOR,
@@ -13,7 +14,7 @@ def test_keybinding_runtime_evaluates_block_reasons() -> None:
     registry = KeybindingRegistry()
     definition = KeyBindingDefinition(
         binding_id="global.enter",
-        sequence="<Return>",
+        keys=(KeySpec(Key.ENTER),),
         intent="quiz.enter",
         modes=(UI_MODE_GLOBAL,),
         allow_when_text_input=False,
@@ -21,14 +22,14 @@ def test_keybinding_runtime_evaluates_block_reasons() -> None:
     )
     dialog_definition = KeyBindingDefinition(
         binding_id="dialog.enter",
-        sequence="<Return>",
+        keys=(KeySpec(Key.ENTER),),
         intent="dialog.enter",
         modes=(UI_MODE_DIALOG,),
         allow_when_text_input=True,
     )
     preview_definition = KeyBindingDefinition(
         binding_id="preview.space",
-        sequence="<space>",
+        keys=(KeySpec(Key.SPACE),),
         intent="preview.space",
         modes=(UI_MODE_PREVIEW,),
         allow_when_text_input=False,

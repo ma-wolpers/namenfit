@@ -3,7 +3,8 @@
 from bw_libs.shared_gui_core import ensure_bw_gui_on_path
 
 ensure_bw_gui_on_path()
-from bw_gui.runtime import WindowShortcutBinder, ui
+from bw_gui.contracts import EventResult, Key, KeySpec, Mod
+from bw_gui.runtime import WindowShortcutBinder, create_root, ui
 
 from ..core.models import LEVEL_1, LEVEL_2
 from .ui_theme import BG_MAIN, FG_PRIMARY, apply_window_theme, style_primary_button
@@ -20,7 +21,7 @@ def ask_level(root=None, current_level=None):
         level_win = ui.Toplevel(root)
         level_win.transient(root)
     else:
-        level_win = ui.Tk()
+        level_win = create_root()  # bw-gui bootstrap: key router installed right after Tk()
     level_win.title("Schwierigkeit auswählen")
     level_win.resizable(False, False)
     level_win.deiconify()
@@ -77,14 +78,14 @@ def ask_level(root=None, current_level=None):
 
     shortcuts = WindowShortcutBinder(level_win)
     shortcuts.bind(
-        "<Return>",
-        lambda _event: (confirm(), "break")[1],
+        KeySpec(Key.ENTER, (), (Mod.SHIFT,)),
+        lambda _event: (confirm(), EventResult.HANDLED)[1],
         binding_id="level.confirm.enter",
         intent="level.confirm",
     )
     shortcuts.bind(
-        "<space>",
-        lambda _event: (confirm(), "break")[1],
+        KeySpec(Key.SPACE, (), (Mod.SHIFT,)),
+        lambda _event: (confirm(), EventResult.HANDLED)[1],
         binding_id="level.confirm.space",
         intent="level.confirm",
     )

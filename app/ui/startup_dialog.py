@@ -28,14 +28,15 @@ from .window_identity import apply_window_icon
 ensure_bw_gui_on_path()
 from bw_gui.runtime.screen_placement import place_on_pointer_monitor
 from bw_gui.menu import CustomMenuBar, MenuDefinition, MenuItem
-from bw_gui.runtime import ui
+from bw_gui.contracts import EventResult, Key, KeySpec, Mod
+from bw_gui.runtime import WindowShortcutBinder, create_root, ui
 from bw_gui.theming import configure_ttk_theme
 
 
 def ask_data_source_dialog(recent_store):
     """Öffnet den Startdialog und liefert eine Datenquellen-Auswahl oder None."""
 
-    dialog = ui.Tk()
+    dialog = create_root()  # bw-gui bootstrap: key router installed right after Tk()
     apply_window_icon(dialog)
     dialog.title("Namens-Trainer starten")
     dialog.resizable(False, False)
@@ -475,10 +476,10 @@ def ask_data_source_dialog(recent_store):
             messagebox.showwarning(
                 "Hinweis", "Kein zuletzt gestarteter Spielmodus gespeichert."
             )
-            return "break"
+            return EventResult.HANDLED
         result["confirmed"] = True
         dialog.quit()
-        return "break"
+        return EventResult.HANDLED
 
     def _append_unique_path(items, path):
         normalized = os.path.normcase(os.path.abspath(path))
@@ -581,9 +582,19 @@ def ask_data_source_dialog(recent_store):
         _apply_theme()
 
     dialog.protocol("WM_DELETE_WINDOW", on_cancel)
-    dialog.bind("<Escape>", lambda _event: (on_cancel(), "break")[1])
-    dialog.bind("z", on_resume_last)
-    dialog.bind("Z", on_resume_last)
+    shortcuts = WindowShortcutBinder(dialog)
+    shortcuts.bind(
+        KeySpec(Key.ESCAPE, (), (Mod.SHIFT,)),
+        lambda _event: (on_cancel(), EventResult.HANDLED)[1],
+        binding_id="startup.cancel",
+        intent="startup.cancel",
+    )
+    shortcuts.bind(
+        [KeySpec.char("z"), KeySpec.char("Z")],
+        on_resume_last,
+        binding_id="startup.resume-last",
+        intent="startup.resume_last",
+    )
     dialog.update_idletasks()
     menu_holder["bar"] = _build_start_menu(
         dialog,
