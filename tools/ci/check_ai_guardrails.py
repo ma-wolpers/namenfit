@@ -366,7 +366,7 @@ def _check_runtime_shortcut_integration(errors: list[str]) -> None:
     ui_module = _read("app/ui/ui.py")
     _require_substring(
         ui_module,
-        "self._runtime_shortcuts = KeybindingRegistry()",
+        "self._shortcuts = WindowShortcutBinder(",
         "app/ui/ui.py",
         errors,
     )
@@ -378,7 +378,7 @@ def _check_runtime_shortcut_integration(errors: list[str]) -> None:
     )
     _require_substring(
         ui_module,
-        "self._runtime_shortcuts.evaluate_runtime(",
+        "self._shortcuts.registry.evaluate_runtime(",
         "app/ui/ui.py",
         errors,
     )
@@ -397,12 +397,12 @@ def _check_shared_ui_contracts(errors: list[str]) -> None:
 
     required_snippets = (
         "from bw_gui.dialogs import SettingsDialogOrchestrator as SharedSettingsDialogOrchestrator",
-        "from bw_gui.menu import CustomMenuBar as SharedCustomMenuBar",
-        "from bw_gui.menu import build_standard_menu_definitions as build_shared_standard_menu_definitions",
-        "from bw_gui.menu import section_spec as shared_menu_section_spec",
+        # The menu bar comes from the BwBaseWindow shell, fed by build_menu() (since 2026-07-26).
+        "class QuizApp(BwBaseWindow):",
+        "from bw_gui.menu import section_spec",
+        "def build_menu(self) -> list:",
         "from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text",
         "from bw_gui.widgets import HoverTooltip as SharedHoverTooltip",
-        "self._shared_menu_bar = SharedCustomMenuBar(",
         "self._settings_dialog_orchestrator = SharedSettingsDialogOrchestrator(",
         "tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)",
         "self._settings_dialog_orchestrator.open(self.root)",
