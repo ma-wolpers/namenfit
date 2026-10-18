@@ -12,7 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
-- **Schlanke Scrollbars:** Alle Scrollbars sind jetzt die schlanke native Scrollbar statt der mit Pfeilknöpfen; unter Windows werden sie im dunklen Theme dunkel.
+- **Schlanke Scrollbars:** Alle Scrollbars sind jetzt die schlanke native Scrollbar statt der mit Pfeilknöpfen; unter Windows werden sie im dunklen Theme dunkel. Das Mausrad über der Scrollbar eines scrollbaren Bereichs (z. B. im Einstellungsdialog) scrollt jetzt genau dreimal so weit wie über dem Inhalt (bisher unbeabsichtigt fünfmal).
 
 ### Fixed
 - Der Startdialog öffnet sich auf dem Monitor, auf dem der Mauszeiger steht (oberes Drittel), statt immer auf dem Hauptmonitor.
