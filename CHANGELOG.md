@@ -11,6 +11,9 @@ The format is based on Keep a Changelog.
 - New shortcut runtime debug popup in the Debug menu with compact active/disabled diagnostics and offline simulation (`Strg+Shift+D`, `Strg+Shift+O`).
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
+### Changed
+- **Schlanke Scrollbars:** Alle Scrollbars sind jetzt die schlanke native Scrollbar statt der mit Pfeilknöpfen; unter Windows werden sie im dunklen Theme dunkel.
+
 ### Fixed
 - Der Startdialog öffnet sich auf dem Monitor, auf dem der Mauszeiger steht (oberes Drittel), statt immer auf dem Hauptmonitor.
 - Leertaste und Enter sprangen nach einer gelösten Aufgabe nicht zur nächsten Person (und Enter/Leertaste am Rundenende nicht zurück zum Startdialog): Der Tastatur-Fokus blieb nach dem Lösen auf dem inzwischen deaktivierten Antwortfeld stehen, wodurch der zentrale Shortcut-Runtime-Gate `<space>` als "Text-Eingabefeld fokussiert" blockierte; zusätzlich hatte `_on_enter` nie eine Verzweigung für den bereits gelösten Zustand. `_show_action_button()` setzt den Fokus jetzt explizit auf das Hauptfenster, sobald der "Weiter"-Button erscheint, `<space>` ist nicht mehr grundsätzlich vom Text-Eingabefeld-Gate betroffen, und `_on_enter` löst jetzt auch den Sprung zur nächsten Person aus.
