@@ -12,6 +12,7 @@ The format is based on Keep a Changelog.
 - Runtime module tests for keybinding evaluation and popup policy stack behavior.
 
 ### Changed
+- Tastenhinweise im Debug-Menü und in den Tooltips (Auflösen, Weiter, Vertipper, Offline-Simulation) werden jetzt direkt aus den Tastenkürzeln gelesen und stimmen damit immer mit der Belegung überein. Sichtbar ändert sich nichts.
 - **Schlanke Scrollbars:** Alle Scrollbars sind jetzt die schlanke native Scrollbar statt der mit Pfeilknöpfen; unter Windows werden sie im dunklen Theme dunkel. Das Mausrad über der Scrollbar eines scrollbaren Bereichs (z. B. im Einstellungsdialog) scrollt jetzt genau dreimal so weit wie über dem Inhalt (bisher unbeabsichtigt fünfmal).
 
 ### Fixed

@@ -404,7 +404,7 @@ def _check_shared_ui_contracts(errors: list[str]) -> None:
         "from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text",
         "from bw_gui.widgets import HoverTooltip as SharedHoverTooltip",
         "self._settings_dialog_orchestrator = SharedSettingsDialogOrchestrator(",
-        "tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)",
+        "tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key, text_provider=provider)",
         "self._settings_dialog_orchestrator.open(self.root)",
     )
     forbidden_snippets = (

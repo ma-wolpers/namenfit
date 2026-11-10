@@ -16,7 +16,7 @@ from bw_gui.dialogs import SettingsFieldSpec as SharedSettingsFieldSpec
 from bw_gui.dialogs import SettingsSectionSpec as SharedSettingsSectionSpec
 from bw_gui.menu import MenuItem as SharedMenuItem
 from bw_gui.menu import section_spec
-from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text
+from bw_gui.shortcuts import compose_hover_text as compose_shared_hover_text, compose_hover_text_for_intent, compose_menu_label
 from bw_gui.widgets import HoverTooltip as SharedHoverTooltip
 from bw_gui.widgets import Switch
 
@@ -341,14 +341,26 @@ class QuizApp(BwBaseWindow):
             ),
         )
 
-    def _attach_hover_help(self, widget, *, label, shortcut=None):
-        """Attach shared tooltip text for action buttons and shortcuts."""
+    def _attach_hover_help(self, widget, *, label, intent=None):
+        """Attach shared tooltip text for action buttons and shortcuts.
 
-        shortcut_text = (shortcut or "").strip()
-        text = compose_shared_hover_text(label, shortcut_text)
+        With *intent* the tooltip reads the key of that binding each time it appears
+        (the binder is created after the layout); keys are never written as text.
+        """
 
-        tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key)
+        provider = None
+        if intent is not None:
+
+            def provider() -> str:
+                return compose_hover_text_for_intent(label, intent=intent, shortcuts=self._shortcuts.registry)
+
+        text = compose_shared_hover_text(label)
+        tooltip = SharedHoverTooltip(widget, text, theme_key=self.theme_key, text_provider=provider)
         self._hover_tooltips.append(tooltip)
+
+    def _menu_label(self, text: str, intent: str) -> str:
+        """Menu text with the key of *intent*'s binding (same source as the tooltips)."""
+        return compose_menu_label(text, self._shortcuts.registry.shortcut_for_intent(intent))
 
     def _menu_items_view(self):
         return ()
@@ -391,12 +403,12 @@ class QuizApp(BwBaseWindow):
             SharedMenuItem(type="separator"),
             SharedMenuItem(
                 type="command",
-                label="Shortcut-Runtime-Debug anzeigen (Strg+Shift+D)",
+                label=self._menu_label("Shortcut-Runtime-Debug anzeigen", UiIntent.DEBUG_RUNTIME_OVERLAY),
                 command=self._open_shortcut_runtime_debug_dialog,
             ),
             SharedMenuItem(
                 type="switch",
-                label="Offline simulieren (Strg+Shift+O)",
+                label=self._menu_label("Offline simulieren", UiIntent.DEBUG_RUNTIME_OFFLINE),
                 checked=bool(self._shortcut_debug_offline),
                 # The handler toggles itself; the requested value is always "not checked".
                 on_toggle=lambda _offline: self._toggle_shortcut_runtime_offline(),
@@ -855,7 +867,7 @@ class QuizApp(BwBaseWindow):
 
         self.solve_button = widgets.Button(_p, text="Auflösen", style="PrimaryAction.TButton", cursor="hand2", command=self.solve)
         self.solve_button.pack(pady=(2, 2))
-        self._attach_hover_help(self.solve_button, label="Aktuelle Aufgabe aufloesen", shortcut="Enter")
+        self._attach_hover_help(self.solve_button, label="Aktuelle Aufgabe aufloesen", intent=UiIntent.QUIZ_ENTER)
 
         self.typo_button = widgets.Button(
             _p,
@@ -866,12 +878,12 @@ class QuizApp(BwBaseWindow):
         )
         self.typo_button.pack(pady=(0, 4))
         self.typo_button.pack_forget()
-        self._attach_hover_help(self.typo_button, label="Vertipper markieren", shortcut="Backspace")
+        self._attach_hover_help(self.typo_button, label="Vertipper markieren", intent=UiIntent.QUIZ_TYPO)
 
         self.next_button = widgets.Button(_p, text="Weiter", style="PrimaryAction.TButton", cursor="hand2", command=self.next_person)
         self.next_button.pack(pady=5)
         self.next_button.pack_forget()
-        self._attach_hover_help(self.next_button, label="Naechste Person laden", shortcut="Enter")
+        self._attach_hover_help(self.next_button, label="Naechste Person laden", intent=UiIntent.QUIZ_ENTER)
 
         self.switch_level_button = widgets.Button(
             _p,
@@ -1088,7 +1100,7 @@ class QuizApp(BwBaseWindow):
             on_change=lambda _offline: self._on_shortcut_runtime_offline_var_changed(),
         )
         offline_check.pack(side="left", padx=(12, 0))
-        self._attach_hover_help(offline_check, label="Offline-Simulation fuer Runtime-Resolver umschalten", shortcut="Ctrl+Shift+O")
+        self._attach_hover_help(offline_check, label="Offline-Simulation fuer Runtime-Resolver umschalten", intent=UiIntent.DEBUG_RUNTIME_OFFLINE)
 
         refresh_button = widgets.Button(toolbar, text="Aktualisieren", command=self._refresh_shortcut_runtime_debug_dialog)
         refresh_button.pack(side="left", padx=(8, 0))
